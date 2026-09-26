@@ -46,10 +46,3 @@ jobs:
         run: python3 .github/actions/self-hosted-runners/test/test_check_runners.py
       - name: Guard this repository (local action, same code other repos call)
         uses: ./.github/actions/self-hosted-runners
-
-  self-hosted-runners:
-    runs-on: sylphx-linux-standard
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: Cubeage/.github/.github/actions/self-hosted-runners@854d150d886e0a4d15846e87e57ca67c7b8c290e
