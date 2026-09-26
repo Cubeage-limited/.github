@@ -1,7 +1,16 @@
 name: self-hosted-runners
 description: >
-  Fail when any workflow in the repository can run on a GitHub-hosted runner.
-  Cubeage runs every workflow on its own runners (GitHub budget is $0).
+  Fail when any workflow in the repository can run on a runner that costs
+  GitHub money: a private repository must use our own runners; a public one may
+  also use GitHub's free standard hosted runners; larger and GPU runners are
+  never allowed (zero GitHub spend, owner#750).
+inputs:
+  visibility:
+    description: >
+      "private" or "public". Defaults to the triggering repository's visibility;
+      anything else is treated as private.
+    required: false
+    default: ${{ github.event.repository.private == false && 'public' || 'private' }}
 runs:
   using: composite
   steps:
@@ -11,4 +20,6 @@ runs:
     - shell: bash
       run: python3 -m pip install --disable-pip-version-check --quiet pyyaml==6.0.2
     - shell: bash
-      run: python3 "$GITHUB_ACTION_PATH/check_runners.py" "$GITHUB_WORKSPACE"
+      env:
+        VISIBILITY: ${{ inputs.visibility }}
+      run: python3 "$GITHUB_ACTION_PATH/check_runners.py" "$GITHUB_WORKSPACE" --visibility "$VISIBILITY"
