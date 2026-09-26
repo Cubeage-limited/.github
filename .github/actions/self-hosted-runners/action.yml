@@ -1,0 +1,14 @@
+name: self-hosted-runners
+description: >
+  Fail when any workflow in the repository can run on a GitHub-hosted runner.
+  Cubeage runs every workflow on its own runners (GitHub budget is $0).
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      with:
+        python-version: "3.12"
+    - shell: bash
+      run: python3 -m pip install --disable-pip-version-check --quiet pyyaml==6.0.2
+    - shell: bash
+      run: python3 "$GITHUB_ACTION_PATH/check_runners.py" "$GITHUB_WORKSPACE"
