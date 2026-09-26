@@ -23,6 +23,8 @@ Sylphx Runners.
   It takes only `CLOUDFLARE_API_TOKEN` (Pages Edit): the repository secret in
   CI, `op://Sylphx/wdzsmplds7qlnrjvjhfdkjqqxu/credential` on the desk. The
   Global API Key is owner-only and the script clears it before uploading.
+  Usage: `pages-publish.sh <dir> <project> [branch] [-- <wrangler flags>]`;
+  workflows fetch it the same way and call it in place of `wrangler pages deploy`.
 - Repositories with several workflows also carry a `ci-ok` workflow: the one
   required check of the merge queue, which waits for every other check.
 
