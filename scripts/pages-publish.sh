@@ -3,7 +3,12 @@
 # Shared by every Cubeage title's scripts/deploy_pages.sh; each title keeps its
 # own build and identity stamping and calls this for the upload only.
 #
-#   pages-publish.sh <dir> <pages-project> [branch]    (branch defaults to main)
+#   pages-publish.sh <dir> <pages-project> [branch] [-- <wrangler pages deploy flags>...]
+#
+# branch defaults to main. Flags after "--" go to `wrangler pages deploy`
+# unchanged (for example --commit-hash, --commit-message, --commit-dirty=false);
+# without a --commit-dirty flag the upload is marked --commit-dirty=true.
+# wrangler@4 runs through npx, or through bunx on runners without Node.
 #
 # Credential: CLOUDFLARE_API_TOKEN, an account-owned token with Pages Edit.
 #   CI:   the repository's CLOUDFLARE_API_TOKEN secret.
@@ -15,13 +20,36 @@
 # upload re-sends only the missing content-addressed files.
 set -euo pipefail
 
-if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
-  echo "usage: pages-publish.sh <dir> <pages-project> [branch]" >&2
+usage() {
+  echo "usage: pages-publish.sh <dir> <pages-project> [branch] [-- <wrangler flags>...]" >&2
   exit 64
-fi
+}
+[ "$#" -ge 2 ] || usage
 dir="$1"
 project="$2"
-branch="${3:-main}"
+shift 2
+branch=main
+if [ "$#" -gt 0 ] && [ "$1" != "--" ]; then
+  branch="$1"
+  shift
+fi
+if [ "$#" -gt 0 ]; then
+  [ "$1" = "--" ] || usage
+  shift
+fi
+extra=("$@")
+dirty=(--commit-dirty=true)
+for flag in "${extra[@]}"; do
+  case "$flag" in --commit-dirty*) dirty=() ;; esac
+done
+if command -v npx >/dev/null 2>&1; then
+  wrangler=(npx --yes wrangler@4)
+elif command -v bunx >/dev/null 2>&1; then
+  wrangler=(bunx wrangler@4)
+else
+  echo "pages-publish: needs npx (Node) or bunx (Bun) to run wrangler" >&2
+  exit 69
+fi
 
 test -d "$dir" || { echo "pages-publish: $dir is not a directory" >&2; exit 66; }
 
@@ -37,10 +65,10 @@ export CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID
 attempts="${PAGES_PUBLISH_ATTEMPTS:-3}"
 for attempt in $(seq 1 "$attempts"); do
   echo "pages-publish: $dir -> $project ($branch), attempt $attempt/$attempts"
-  if npx --yes wrangler@4 pages deploy "$dir" \
+  if "${wrangler[@]}" pages deploy "$dir" \
       --project-name="$project" \
       --branch="$branch" \
-      --commit-dirty=true; then
+      "${dirty[@]}" "${extra[@]}"; then
     exit 0
   fi
   [ "$attempt" -lt "$attempts" ] && sleep $((attempt * 15))
