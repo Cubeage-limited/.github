@@ -674,6 +674,11 @@
       "module": "card-board"
     },
     {
+      "id": "GS-MOD-CB-4",
+      "level": "SHOULD",
+      "module": "card-board"
+    },
+    {
       "id": "GS-MOD-PV-1",
       "level": "MUST",
       "module": "competitive"
