@@ -74,11 +74,19 @@ DEFAULT_RULES = HERE / "rules.json"
 def known_standards(current: str) -> tuple[str, ...]:
     """Every version up to the one rules.json carries, newest first: "1.3" -> ("1.3", "1.2", "1.1", "1.0").
 
+    A patch version relaxes the standard without adding an obligation, so the
+    versions it relaxes stay known and only warn: "1.3.1" -> ("1.3.1", "1.3",
+    "1.2", "1.1", "1.0"), and "1.3.2" keeps "1.3.1" too.
+
     rules.json is the one source of the current version, so a new version of
     the standard needs no change to this file.
     """
-    major, _, minor = current.partition(".")
-    return tuple(f"{major}.{m}" for m in range(int(minor), -1, -1))
+    major, _, rest = current.partition(".")
+    minor, _, patch = rest.partition(".")
+    known = [f"{major}.{m}" for m in range(int(minor), -1, -1)]
+    if patch:
+        known = [f"{major}.{minor}.{p}" for p in range(int(patch), 0, -1)] + known
+    return tuple(known)
 SKIP_DIRS = {".git", "target", "node_modules", "vendor", "dist"}
 TITLE_ID = re.compile(r"^[a-z][a-z0-9]{1,23}$")
 HTTPS_URL = re.compile(r"^https://\S+$")
