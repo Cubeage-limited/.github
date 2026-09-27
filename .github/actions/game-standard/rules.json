@@ -1,5 +1,5 @@
 {
-  "standard": "1.1",
+  "standard": "1.2",
   "doc": "Cubeage/cubeage-platform docs/standards/game-standard.md",
   "modules": [
     "core",
@@ -100,6 +100,26 @@
     },
     {
       "id": "GS-START-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-WEB-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-WEB-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-WEB-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-WEB-4",
       "level": "MUST",
       "module": "core"
     },

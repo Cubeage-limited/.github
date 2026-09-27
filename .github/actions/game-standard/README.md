@@ -8,7 +8,7 @@ but the repository it is pointed at.
 ## What a title declares
 
 ```toml
-standard = "1.1"             # the current version; "1.0" is accepted with a warning
+standard = "1.2"             # the current version; "1.1" and "1.0" are accepted with a warning
 title = "ab12"               # ^[a-z][a-z0-9]{1,23}$
 audience = "general"         # general | kids
 modules = ["card-board"]     # genre modules; core is implicit and not listed
@@ -26,6 +26,10 @@ daily_reasons = ["daily_seed", "check_in"]   # daily_seed | daily_shop | timed_c
                                              # | daily_quests | check_in | daily_event
 session_minutes = 3          # GS-HAB-10; 2 to 5 whenever it is given
 auto_play = "yes"            # GS-HAB-11; yes | no | takeover-only
+
+[platforms]                  # GS-WEB-1; web_build is required in every Keel title
+web_build = "crates/ab12-web"        # the directory of the web keel.toml
+web_url = "https://www.cubeage.com/en/games/ab12"   # its page; required to release
 
 [paths]
 calendar = "liveops/calendar.toml"   # required once GS-LIVE-1 or GS-HAB-9 is adopted
@@ -61,6 +65,20 @@ The calendar also answers GS-HAB-9: once GS-HAB-9 is adopted, each of the next
 `end` after its `start`. An empty week is a warning in `mode: pr` and an error
 in `mode: release`, and it is named by the date its week starts.
 
+## The web build
+
+A repository holding a `keel.toml` (outside `target`, `node_modules`, `vendor`,
+`dist` and `.git`) is a Keel title, and GS-WEB-1 asks it for a web build:
+`[platforms] web_build` names the directory holding the web build's own
+`keel.toml` - a path inside the repository, with no `..` leaving it - and that
+`keel.toml` must parse and carry a `[web]` table. A legacy client that answers
+GS-WEB-1 with `n/a legacy client, replaced by <issue URL>` needs neither, and
+neither does a release of one.
+
+`[platforms] web_url` is the title's page on https://www.cubeage.com/, where
+the web build plays. Checked whenever it is given, and required once a Keel
+title releases.
+
 ## Modes
 
 `mode: pr` (the default) fails when the manifest is missing or does not parse,
@@ -68,15 +86,23 @@ a declared value is out of range, a MUST of the core or of a declared module
 has no status or a malformed one, a status names a rule that is not in
 `rules.json`, a kids title breaks the kids module's rules, a budget is over the
 standard's limit, a required habit field is missing or out of range, the
-calendar is missing or malformed once GS-LIVE-1 or GS-HAB-9 is adopted, or a
-`keel.toml` `[web.boot] module_kb` is over the web budget. Warnings, not
-errors: a manifest still on `standard = "1.0"`, a calendar that runs out inside
-the next 56 days, a week of the next 8 with no event, and `auto_play = "yes"`
-beside an `n/a` GS-HAB-11.
+calendar is missing or malformed once GS-LIVE-1 or GS-HAB-9 is adopted, a
+`keel.toml` `[web.boot] module_kb` is over the web budget, `[platforms]` is not
+a table, a Keel title declares no `web_build`, or a `web_build` or `web_url` is
+not as above. Warnings, not errors: a manifest still on `standard = "1.1"` or
+`"1.0"`, a calendar that runs out inside the next 56 days, a week of the next 8
+with no event, and `auto_play = "yes"` beside an `n/a` GS-HAB-11.
 
 `mode: release` adds: no MUST may be only `planned`; the calendar must reach at
-least 56 days out and cover each of the next 8 weeks; and `artifact` must fit
-the `first_download_mb` its `artifact-platform` declares.
+least 56 days out and cover each of the next 8 weeks; a Keel title must declare
+`[platforms] web_url`; and `artifact` must fit the `first_download_mb` its
+`artifact-platform` declares.
+
+The standard's version moves with its rules: `rules.json` beside the action
+names the version it carries (`standard`), and a rule added or removed raises
+that version by one minor. A manifest on a version the action knows but no
+longer carries warns and asks for the current one; a version it does not know
+at all fails.
 
 Findings print as GitHub annotations, a status summary goes to the job
 summary, and any error exits 1.

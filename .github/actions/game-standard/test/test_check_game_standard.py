@@ -20,6 +20,8 @@ TODAY = "2026-09-27"  # every fixture date is read against this day
 FUTURE = "2027-03-31"
 PAST = "2026-01-01"
 CALENDAR = "liveops/calendar.toml"
+WEB_BUILD = "crates/ab12-web"  # the fixture title's web build, as [platforms] web_build names it
+WEB_FILES = {f"{WEB_BUILD}/keel.toml": "[web.boot]\nmodule_kb = 2000\n"}
 
 
 def musts(modules: tuple[str, ...]) -> list[str]:
@@ -45,17 +47,22 @@ def manifest(
     auto_play: str | None = '"yes"',
     habit: bool = True,
     calendar: str | None = CALENDAR,
+    web_build: str | None = None,
+    web_url: str | None = None,
     rules_section: bool = True,
     **lines: str,
 ) -> str:
     """A manifest that passes on its own; keyword arguments replace its lines.
 
     `None` drops one line, and `habit=False` drops the whole `[habit]` table.
+    `web_build` and `web_url` are raw TOML values, and `[platforms]` is written
+    only when one of the two is given; any other keyword adds that top-level
+    line as it is written.
     """
     entries = {rule: "adopted" for rule in musts(modules) if rule not in drop}
     entries.update(statuses or {})
     top = {
-        "standard": 'standard = "1.1"',
+        "standard": 'standard = "1.2"',
         "title": 'title = "ab12"',
         "audience": 'audience = "general"',
         "age_rating": 'age_rating = "18+"',
@@ -72,13 +79,7 @@ def manifest(
     if first_fun is not None:
         budgets.append(f"first_fun_s = {first_fun}")
     body = [
-        top["standard"],
-        top["title"],
-        top["audience"],
-        top["age_rating"],
-        top["simulated_gambling"],
-        top["locales"],
-        top["modules"],
+        *top.values(),
         "",
         *budgets,
         "",
@@ -91,6 +92,13 @@ def manifest(
             table.append(f"session_minutes = {session_minutes}")
         if auto_play is not None:
             table.append(f"auto_play = {auto_play}")
+        body += [*table, ""]
+    if web_build is not None or web_url is not None:
+        table = ["[platforms]"]
+        if web_build is not None:
+            table.append(f"web_build = {web_build}")
+        if web_url is not None:
+            table.append(f"web_url = {web_url}")
         body += [*table, ""]
     if calendar is not None:
         body += ["[paths]", f"calendar = {json.dumps(calendar)}", ""]
@@ -163,14 +171,16 @@ class GameStandardTests(unittest.TestCase):
 
     def test_standard_version(self) -> None:
         self.assertPasses(repo())
-        out = run(repo(manifest(standard='standard = "1.0"')))
-        self.assertEqual(out.returncode, 0, out.stdout)
-        self.assertIn(
-            "::warning file=game-standard.toml::standard '1.0' is superseded; move the manifest to standard = \"1.1\"",
-            out.stdout,
-        )
-        self.assertFails(repo(manifest(standard='standard = "0.9"')), says="standard must be '1.1', '1.0'")
-        self.assertFails(repo(manifest(standard="standard = 1.1")), says="standard must be '1.1', '1.0'")
+        for old in ("1.1", "1.0"):
+            out = run(repo(manifest(standard=f'standard = "{old}"')))
+            self.assertEqual(out.returncode, 0, out.stdout)
+            self.assertIn(
+                f"::warning file=game-standard.toml::standard '{old}' is superseded; "
+                'move the manifest to standard = "1.2"',
+                out.stdout,
+            )
+        self.assertFails(repo(manifest(standard='standard = "0.9"')), says="standard must be '1.2', '1.1', '1.0'")
+        self.assertFails(repo(manifest(standard="standard = 1.1")), says="standard must be '1.2', '1.1', '1.0'")
 
     def test_first_fun_budget(self) -> None:
         self.assertPasses(repo(manifest(first_fun="12")))
@@ -484,19 +494,130 @@ class GameStandardTests(unittest.TestCase):
         )
 
     def test_keel_web_boot_module_budget(self) -> None:
-        self.assertPasses(repo(**{"keel.toml": "[web.boot]\nmodule_kb = 3000\n"}))
+        # The repository's own keel.toml is where a web_build of "." points.
+        self.assertPasses(repo(manifest(web_build='"."'), **{"keel.toml": "[web.boot]\nmodule_kb = 3000\n"}))
         self.assertFails(
-            repo(**{"keel.toml": "[web.boot]\nmodule_kb = 3001\n"}),
+            repo(manifest(web_build='"."'), **{"keel.toml": "[web.boot]\nmodule_kb = 3001\n"}),
             says="[web.boot] module_kb is 3001 KB, over the 3000 KB web budget",
         )
-        self.assertPasses(repo(**{"keel.toml": "[web]\nname = 'ab12'\n"}))
+        self.assertPasses(repo(manifest(web_build='"."'), **{"keel.toml": "[web]\nname = 'ab12'\n"}))
 
     def test_nested_keel_toml_is_checked_and_build_dirs_are_skipped(self) -> None:
         self.assertFails(
-            repo(**{"crates/ab12-web/keel.toml": "[web.boot]\nmodule_kb = 3100\n"}),
+            repo(
+                manifest(web_build=f'"{WEB_BUILD}"'),
+                **{f"{WEB_BUILD}/keel.toml": "[web.boot]\nmodule_kb = 3100\n"},
+            ),
             says="[web.boot] module_kb is 3100 KB, over the 3000 KB web budget",
         )
         self.assertPasses(repo(**{"target/wasm/keel.toml": "[web.boot]\nmodule_kb = 9999\n"}))
+
+    def test_keel_title_needs_a_web_build(self) -> None:
+        keel = {"keel.toml": "[web]\nname = 'ab12'\n"}
+        self.assertFails(
+            repo(**keel),
+            says="[platforms] web_build is required in a Keel title (GS-WEB-1): the directory of the web "
+            "build's keel.toml",
+        )
+        # A legacy client answers GS-WEB-1 with n/a and ships no web build.
+        self.assertPasses(
+            repo(manifest(statuses={"GS-WEB-1": "n/a legacy client, replaced by https://example/1"}), **keel),
+        )
+        # No keel.toml outside the skipped directories: not a Keel title, so [platforms] is optional.
+        self.assertPasses(repo())
+        self.assertPasses(repo(**{"target/wasm/keel.toml": "[web.boot]\nmodule_kb = 2000\n"}))
+
+    def test_web_build_holds_a_web_keel_toml(self) -> None:
+        self.assertPasses(repo(manifest(web_build=f'"{WEB_BUILD}"'), **WEB_FILES))
+        self.assertFails(
+            repo(manifest(web_build=f'"{WEB_BUILD}"')),
+            says=f"[platforms] web_build '{WEB_BUILD}' is not a directory in the repository",
+        )
+        # A relative path that stays inside the repository, `..` or not.
+        self.assertPasses(repo(manifest(web_build='"./crates/ab12-web"'), **WEB_FILES))
+        self.assertPasses(repo(manifest(web_build='"crates/../crates/ab12-web"'), **WEB_FILES))
+        self.assertFails(
+            repo(manifest(web_build=f'"{WEB_BUILD}"'), **{"crates/ab12-web/keel.toml": "[audio]\nname = 'x'\n"}),
+            says=f"[platforms] web_build '{WEB_BUILD}' keel.toml has no [web] table",
+        )
+        self.assertFails(
+            repo(manifest(web_build=f'"{WEB_BUILD}"'), **{"crates/ab12-web/keel.toml": "[[[\n"}),
+            says="does not parse as TOML",
+        )
+        self.assertFails(
+            repo(manifest(web_build=f'"{WEB_BUILD}"'), **{f"{WEB_BUILD}/README.md": "the web build\n"}),
+            says=f"[platforms] web_build '{WEB_BUILD}' holds no keel.toml",
+        )
+        self.assertFails(
+            repo(manifest(web_build='"/srv/ab12-web"'), **WEB_FILES),
+            says="[platforms] web_build must be relative to the repository root",
+        )
+        self.assertFails(
+            repo(manifest(web_build='"../ab12-web"'), **WEB_FILES),
+            says="[platforms] web_build must stay inside the repository (found '../ab12-web')",
+        )
+        self.assertFails(
+            repo(manifest(web_build="3"), **WEB_FILES),
+            says="[platforms] web_build must be a non-empty string",
+        )
+        self.assertFails(
+            repo(manifest(web_build='""'), **WEB_FILES),
+            says="[platforms] web_build must be a non-empty string",
+        )
+        # Checked whenever it is given, even beside an n/a GS-WEB-1.
+        self.assertFails(
+            repo(manifest(web_build='"crates/nope"', statuses={"GS-WEB-1": "n/a legacy client"}), **WEB_FILES),
+            says="[platforms] web_build 'crates/nope' is not a directory in the repository",
+        )
+
+    def test_platforms_must_be_a_table(self) -> None:
+        self.assertFails(repo(manifest(platforms="platforms = 3")), says="[platforms] must be a table")
+        self.assertPasses(
+            repo(manifest(platforms='platforms = { web_url = "https://www.cubeage.com/en/games/ab12" }')),
+        )
+
+    def test_web_url_is_a_page_on_cubeage_com(self) -> None:
+        self.assertPasses(repo(manifest(web_url='"https://www.cubeage.com/en/games/ab12"')))
+        self.assertFails(
+            repo(manifest(web_url='"https://example.com/ab12"')),
+            says="web_url must be a page on https://www.cubeage.com/ (found 'https://example.com/ab12')",
+        )
+        self.assertFails(
+            repo(manifest(web_url='"https://cubeage.com/en/games/ab12"')),
+            says="web_url must be a page on https://www.cubeage.com/",
+        )
+        self.assertFails(
+            repo(manifest(web_url='"http://www.cubeage.com/en/games/ab12"')),
+            says="web_url must be a page on https://www.cubeage.com/",
+        )
+        self.assertFails(repo(manifest(web_url="3")), says="web_url must be a page on https://www.cubeage.com/")
+
+    def test_a_release_of_a_keel_title_needs_its_web_url(self) -> None:
+        self.assertPasses(repo(manifest(web_build=f'"{WEB_BUILD}"'), **WEB_FILES))
+        self.assertFails(
+            repo(manifest(web_build=f'"{WEB_BUILD}"'), **WEB_FILES),
+            args=("--mode", "release"),
+            says="[platforms] web_url is required for a release of a Keel title (GS-WEB-1): its page on "
+            "https://www.cubeage.com/",
+        )
+        self.assertPasses(
+            repo(
+                manifest(web_build=f'"{WEB_BUILD}"', web_url='"https://www.cubeage.com/en/games/ab12"'),
+                **WEB_FILES,
+            ),
+            args=("--mode", "release"),
+        )
+        # A legacy client is n/a on GS-WEB-1 and releases without a web page.
+        self.assertPasses(
+            repo(
+                manifest(
+                    web_build=f'"{WEB_BUILD}"',
+                    statuses={"GS-WEB-1": "n/a legacy client, replaced by https://example/1"},
+                ),
+                **WEB_FILES,
+            ),
+            args=("--mode", "release"),
+        )
 
     def test_summary_table(self) -> None:
         files = repo(manifest(statuses={"GS-LIVE-2": "n/a not a live-ops title"}))
