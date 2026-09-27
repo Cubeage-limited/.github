@@ -1,14 +1,15 @@
 name: game-standard
 description: >
   Check a title's game-standard.toml against the Cubeage Game Standard: the
-  manifest, the MUST rules it answers, its declared budgets, and the live-ops
-  calendar. Reads no network; carries only rule ids, levels and module names.
+  manifest, the MUST rules it answers, its declared budgets and habit fields,
+  and the live-ops calendar that covers the next 8 weeks. Reads no network;
+  carries only rule ids, levels and module names.
 inputs:
   mode:
     description: >
       "pr" checks the declaration; "release" also refuses a MUST that is only
-      planned, checks the calendar covers the next 56 days, and checks
-      --artifact against its declared budget.
+      planned, checks the calendar covers the next 56 days and every one of the
+      next 8 weeks, and checks --artifact against its declared budget.
     required: false
     default: pr
   manifest:

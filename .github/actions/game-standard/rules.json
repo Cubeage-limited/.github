@@ -1,5 +1,5 @@
 {
-  "standard": "1.0",
+  "standard": "1.1",
   "doc": "Cubeage/cubeage-platform docs/standards/game-standard.md",
   "modules": [
     "core",
@@ -101,11 +101,6 @@
     {
       "id": "GS-START-4",
       "level": "MUST",
-      "module": "core"
-    },
-    {
-      "id": "GS-START-5",
-      "level": "SHOULD",
       "module": "core"
     },
     {
@@ -424,6 +419,66 @@
       "module": "core"
     },
     {
+      "id": "GS-HAB-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-HAB-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-HAB-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-HAB-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-HAB-5",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-HAB-6",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-HAB-7",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-HAB-8",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-HAB-9",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-HAB-10",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-HAB-11",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-HAB-12",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
       "id": "GS-GROW-1",
       "level": "MUST",
       "module": "core"
@@ -431,6 +486,31 @@
     {
       "id": "GS-GROW-2",
       "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-GROW-8",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-GROW-9",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-GROW-10",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-GROW-11",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-GROW-12",
+      "level": "SHOULD",
       "module": "core"
     },
     {
@@ -669,13 +749,13 @@
       "module": "card-board"
     },
     {
-      "id": "GS-MOD-CB-3",
-      "level": "MUST",
+      "id": "GS-MOD-CB-4",
+      "level": "SHOULD",
       "module": "card-board"
     },
     {
-      "id": "GS-MOD-CB-4",
-      "level": "SHOULD",
+      "id": "GS-MOD-CB-3",
+      "level": "MUST",
       "module": "card-board"
     },
     {
