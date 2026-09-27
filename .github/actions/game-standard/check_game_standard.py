@@ -10,8 +10,8 @@ uses only the Python standard library.
 Mode `pr` checks:
 
   * `game-standard.toml` exists and parses as TOML;
-  * `standard` is a known version (`1.1` is current; `1.0` is still accepted
-    with a warning asking for `1.1`), `title` is a well-formed title ID,
+  * `standard` is a known version (`1.2` is current; `1.1` and `1.0` are still
+    accepted with a warning asking for `1.2`), `title` is a well-formed title ID,
     `audience` is general or kids, `modules` are known module names (`core` is
     implicit and must not be listed), `age_rating` is a string,
     `simulated_gambling` is a boolean, `locales` is a non-empty list;
@@ -34,12 +34,18 @@ Mode `pr` checks:
   * once GS-HAB-9 is `adopted`, each of the next 8 weeks has a calendar event
     (a warning in mode `pr`, an error in mode `release`);
   * a `keel.toml`, when present, keeps `[web.boot] module_kb` within the web
-    budget.
+    budget;
+  * `[platforms]` is a table; a repository holding a `keel.toml` (a Keel title)
+    declares `web_build` - the directory of its web build's `keel.toml` -
+    unless GS-WEB-1 is `n/a`; a `web_build`, whenever it is given, is a path
+    inside the repository holding a `keel.toml` with a `[web]` table; and a
+    `web_url`, whenever it is given, is a page on https://www.cubeage.com/.
 
 Mode `release` adds: no MUST may be only `planned`; the calendar's last event
 must end at least 56 days out and every one of the next 8 weeks must have an
-event (both warnings in mode `pr`); and the file given as `--artifact` must fit
-the declared `first_download_mb` of its platform.
+event (both warnings in mode `pr`); a Keel title declares `web_url`, its page on
+https://www.cubeage.com/; and the file given as `--artifact` must fit the
+declared `first_download_mb` of its platform.
 
 Usage:
   check_game_standard.py [ROOT] [--mode pr|release] [--manifest game-standard.toml]
@@ -64,11 +70,12 @@ from datetime import date, datetime, timedelta
 HERE = pathlib.Path(__file__).resolve().parent
 DEFAULT_RULES = HERE / "rules.json"
 
-CURRENT_STANDARD = "1.1"
-KNOWN_STANDARDS = ("1.1", "1.0")
+CURRENT_STANDARD = "1.2"
+KNOWN_STANDARDS = ("1.2", "1.1", "1.0")
 SKIP_DIRS = {".git", "target", "node_modules", "vendor", "dist"}
 TITLE_ID = re.compile(r"^[a-z][a-z0-9]{1,23}$")
 HTTPS_URL = re.compile(r"^https://\S+$")
+WEB_URL = re.compile(r"^https://www\.cubeage\.com/\S+$")
 WAIVER_DATE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 
 KINDS = ("adopted", "planned", "n/a", "waived")
@@ -301,6 +308,88 @@ def check_keel(path: pathlib.Path, where: str = "keel.toml") -> list[Finding]:
                 f"[web.boot] module_kb is {module_kb:g} KB, over the {WEB_BOOT_MODULE_KB_MAX} KB web budget",
             ),
         ]
+    return []
+
+
+def check_platforms(
+    root: pathlib.Path,
+    data: dict,
+    where: str,
+    mode: str,
+    keel_title: bool,
+    statuses: dict,
+) -> list[Finding]:
+    """GS-WEB-1: the web build [platforms] declares, and the page that plays it."""
+    findings: list[Finding] = []
+    platforms = data.get("platforms")
+    if platforms is None:
+        platforms = {}
+    elif not isinstance(platforms, dict):
+        return [Finding(where, "[platforms] must be a table")]
+
+    # A legacy client answers GS-WEB-1 with `n/a` and ships no web build.
+    exempt = status_kind(statuses.get("GS-WEB-1")) == "n/a"
+    web_build = platforms.get("web_build")
+    if web_build is None:
+        if keel_title and not exempt:
+            findings.append(
+                Finding(
+                    where,
+                    "[platforms] web_build is required in a Keel title (GS-WEB-1): the directory of the "
+                    "web build's keel.toml",
+                ),
+            )
+    else:
+        findings.extend(check_web_build(root, web_build, where))
+
+    web_url = platforms.get("web_url")
+    if web_url is not None:
+        if not isinstance(web_url, str) or not WEB_URL.match(web_url):
+            findings.append(
+                Finding(where, f"web_url must be a page on https://www.cubeage.com/ (found {web_url!r})"),
+            )
+    elif mode == "release" and keel_title and not exempt:
+        findings.append(
+            Finding(
+                where,
+                "[platforms] web_url is required for a release of a Keel title (GS-WEB-1): its page on "
+                "https://www.cubeage.com/",
+            ),
+        )
+    return findings
+
+
+def check_web_build(root: pathlib.Path, web_build: object, where: str) -> list[Finding]:
+    """The directory a title names as its web build: the web keel.toml lives there."""
+    if not isinstance(web_build, str) or not web_build.strip():
+        return [
+            Finding(
+                where,
+                "[platforms] web_build must be a non-empty string: the directory of the web build's keel.toml",
+            ),
+        ]
+    directory = pathlib.Path(web_build)
+    if directory.is_absolute():
+        return [
+            Finding(where, f"[platforms] web_build must be relative to the repository root (found {web_build!r})"),
+        ]
+    inside = root.resolve()
+    resolved = (root / directory).resolve()
+    if resolved != inside and inside not in resolved.parents:
+        return [Finding(where, f"[platforms] web_build must stay inside the repository (found {web_build!r})")]
+    if not resolved.is_dir():
+        return [Finding(where, f"[platforms] web_build {web_build!r} is not a directory in the repository")]
+    keel = resolved / "keel.toml"
+    if not keel.is_file():
+        return [Finding(where, f"[platforms] web_build {web_build!r} holds no keel.toml")]
+    try:
+        parsed = tomllib.loads(keel.read_text(encoding="utf-8"))
+    except tomllib.TOMLDecodeError as err:
+        return [Finding(where, f"[platforms] web_build {web_build!r} does not parse as TOML: {err}")]
+    except (OSError, UnicodeDecodeError) as err:
+        return [Finding(where, f"[platforms] web_build {web_build!r} cannot be read: {err}")]
+    if not isinstance(parsed.get("web"), dict):
+        return [Finding(where, f"[platforms] web_build {web_build!r} keel.toml has no [web] table")]
     return []
 
 
@@ -575,13 +664,17 @@ def check(
         return [Finding(manifest, f"cannot be read: {err}")], counts
 
     findings, counts = check_manifest(data, rules, manifest, mode, today)
-    for keel in sorted(root.glob("**/keel.toml")):
-        if any(part in SKIP_DIRS for part in keel.relative_to(root).parts):
-            continue
+    keel_files = [
+        keel
+        for keel in sorted(root.glob("**/keel.toml"))
+        if not any(part in SKIP_DIRS for part in keel.relative_to(root).parts)
+    ]
+    for keel in keel_files:
         findings.extend(check_keel(keel, str(keel.relative_to(root))))
 
     statuses = data.get("rules") if isinstance(data.get("rules"), dict) else {}
     adopted = adopted_ids(statuses)
+    findings.extend(check_platforms(root, data, manifest, mode, bool(keel_files), statuses))
     # GS-LIVE-1 reads the calendar's events; GS-HAB-9 reads the weeks they cover.
     wants_calendar = [rule for rule in ("GS-LIVE-1", "GS-HAB-9") if rule in adopted]
     if wants_calendar:

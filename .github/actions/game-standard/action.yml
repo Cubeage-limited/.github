@@ -2,8 +2,9 @@ name: game-standard
 description: >
   Check a title's game-standard.toml against the Cubeage Game Standard: the
   manifest, the MUST rules it answers, its declared budgets and habit fields,
-  and the live-ops calendar that covers the next 8 weeks. Reads no network;
-  carries only rule ids, levels and module names.
+  the web build and cubeage.com page it ships, and the live-ops calendar that
+  covers the next 8 weeks. Reads no network; carries only rule ids, levels and
+  module names.
 inputs:
   mode:
     description: >
