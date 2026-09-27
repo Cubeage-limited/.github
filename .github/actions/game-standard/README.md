@@ -8,7 +8,7 @@ but the repository it is pointed at.
 ## What a title declares
 
 ```toml
-standard = "1.2"             # the current version; "1.1" and "1.0" are accepted with a warning
+standard = "1.3"             # the current version (rules.json `standard`); earlier 1.x versions warn
 title = "ab12"               # ^[a-z][a-z0-9]{1,23}$
 audience = "general"         # general | kids
 modules = ["card-board"]     # genre modules; core is implicit and not listed
@@ -89,8 +89,8 @@ standard's limit, a required habit field is missing or out of range, the
 calendar is missing or malformed once GS-LIVE-1 or GS-HAB-9 is adopted, a
 `keel.toml` `[web.boot] module_kb` is over the web budget, `[platforms]` is not
 a table, a Keel title declares no `web_build`, or a `web_build` or `web_url` is
-not as above. Warnings, not errors: a manifest still on `standard = "1.1"` or
-`"1.0"`, a calendar that runs out inside the next 56 days, a week of the next 8
+not as above. Warnings, not errors: a manifest on an earlier 1.x `standard`,
+a calendar that runs out inside the next 56 days, a week of the next 8
 with no event, and `auto_play = "yes"` beside an `n/a` GS-HAB-11.
 
 `mode: release` adds: no MUST may be only `planned`; the calendar must reach at
@@ -100,9 +100,16 @@ least 56 days out and cover each of the next 8 weeks; a Keel title must declare
 
 The standard's version moves with its rules: `rules.json` beside the action
 names the version it carries (`standard`), and a rule added or removed raises
-that version by one minor. A manifest on a version the action knows but no
-longer carries warns and asks for the current one; a version it does not know
-at all fails.
+that version by one minor. The action reads the current version from
+`rules.json`, so a new version changes only that file. A manifest on an earlier
+1.x version warns and asks for the current one; any other version fails.
+
+`rules.json` is the one copy of the rule list. The standard's own repository
+(Cubeage/cubeage-platform, private) pins a commit of this file in
+`docs/standards/game-standard.rules.lock`, and its guard checks the standard's
+text against that commit. A rule change lands here first (generate the file
+with `bun scripts/check-game-standard-rules.ts --print` there), then the
+standard and the lock move together.
 
 Findings print as GitHub annotations, a status summary goes to the job
 summary, and any error exits 1.

@@ -1,5 +1,5 @@
 {
-  "standard": "1.2",
+  "standard": "1.3",
   "doc": "Cubeage/cubeage-platform docs/standards/game-standard.md",
   "modules": [
     "core",
@@ -571,6 +571,31 @@
     {
       "id": "GS-GROW-7",
       "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-UA-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-UA-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-UA-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-UA-4",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-UA-5",
+      "level": "SHOULD",
       "module": "core"
     },
     {

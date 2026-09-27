@@ -16,6 +16,9 @@ ACTION = pathlib.Path(__file__).resolve().parents[1]
 SCRIPT = ACTION / "check_game_standard.py"
 RULES = json.loads((ACTION / "rules.json").read_text(encoding="utf-8"))
 
+sys.path.insert(0, str(ACTION))
+import check_game_standard  # noqa: E402  (the script under test, for its pure helpers)
+
 TODAY = "2026-09-27"  # every fixture date is read against this day
 FUTURE = "2027-03-31"
 PAST = "2026-01-01"
@@ -62,7 +65,7 @@ def manifest(
     entries = {rule: "adopted" for rule in musts(modules) if rule not in drop}
     entries.update(statuses or {})
     top = {
-        "standard": 'standard = "1.2"',
+        "standard": f'standard = "{RULES["standard"]}"',
         "title": 'title = "ab12"',
         "audience": 'audience = "general"',
         "age_rating": 'age_rating = "18+"',
@@ -171,16 +174,25 @@ class GameStandardTests(unittest.TestCase):
 
     def test_standard_version(self) -> None:
         self.assertPasses(repo())
-        for old in ("1.1", "1.0"):
+        current = RULES["standard"]
+        known = check_game_standard.known_standards(current)
+        self.assertEqual(known[0], current)
+        self.assertEqual(known[-1], "1.0")
+        listed = ", ".join(repr(version) for version in known)
+        for old in known[1:]:
             out = run(repo(manifest(standard=f'standard = "{old}"')))
             self.assertEqual(out.returncode, 0, out.stdout)
             self.assertIn(
                 f"::warning file=game-standard.toml::standard '{old}' is superseded; "
-                'move the manifest to standard = "1.2"',
+                f'move the manifest to standard = "{current}"',
                 out.stdout,
             )
-        self.assertFails(repo(manifest(standard='standard = "0.9"')), says="standard must be '1.2', '1.1', '1.0'")
-        self.assertFails(repo(manifest(standard="standard = 1.1")), says="standard must be '1.2', '1.1', '1.0'")
+        self.assertFails(repo(manifest(standard='standard = "0.9"')), says=f"standard must be {listed}")
+        self.assertFails(repo(manifest(standard="standard = 1.1")), says=f"standard must be {listed}")
+
+    def test_known_standards(self) -> None:
+        self.assertEqual(check_game_standard.known_standards("1.3"), ("1.3", "1.2", "1.1", "1.0"))
+        self.assertEqual(check_game_standard.known_standards("1.0"), ("1.0",))
 
     def test_first_fun_budget(self) -> None:
         self.assertPasses(repo(manifest(first_fun="12")))
