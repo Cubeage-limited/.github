@@ -100,9 +100,12 @@ least 56 days out and cover each of the next 8 weeks; a Keel title must declare
 
 The standard's version moves with its rules: `rules.json` beside the action
 names the version it carries (`standard`), and a rule added or removed raises
-that version by one minor. The action reads the current version from
-`rules.json`, so a new version changes only that file. A manifest on an earlier
-1.x version warns and asks for the current one; any other version fails.
+that version by one minor. A change that only relaxes the standard, removing or
+downgrading obligations without adding any, goes up by one patch instead
+(`1.3` to `1.3.1`), and the versions it relaxes stay known. The action reads the
+current version from `rules.json`, so a new version changes only that file. A
+manifest on an earlier 1.x version, patch line included, warns and asks for the
+current one; any other version fails.
 
 `rules.json` is the one copy of the rule list. The standard's own repository
 (Cubeage/cubeage-platform, private) pins a commit of this file in

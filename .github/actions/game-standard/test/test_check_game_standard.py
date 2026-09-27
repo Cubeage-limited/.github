@@ -193,6 +193,13 @@ class GameStandardTests(unittest.TestCase):
     def test_known_standards(self) -> None:
         self.assertEqual(check_game_standard.known_standards("1.3"), ("1.3", "1.2", "1.1", "1.0"))
         self.assertEqual(check_game_standard.known_standards("1.0"), ("1.0",))
+        self.assertEqual(
+            check_game_standard.known_standards("1.3.1"), ("1.3.1", "1.3", "1.2", "1.1", "1.0")
+        )
+        self.assertEqual(
+            check_game_standard.known_standards("1.3.2"),
+            ("1.3.2", "1.3.1", "1.3", "1.2", "1.1", "1.0"),
+        )
 
     def test_first_fun_budget(self) -> None:
         self.assertPasses(repo(manifest(first_fun="12")))
