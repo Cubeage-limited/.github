@@ -10,7 +10,8 @@ uses only the Python standard library.
 Mode `pr` checks:
 
   * `game-standard.toml` exists and parses as TOML;
-  * `standard` is a known version, `title` is a well-formed title ID,
+  * `standard` is a known version (`1.1` is current; `1.0` is still accepted
+    with a warning asking for `1.1`), `title` is a well-formed title ID,
     `audience` is general or kids, `modules` are known module names (`core` is
     implicit and must not be listed), `age_rating` is a string,
     `simulated_gambling` is a boolean, `locales` is a non-empty list;
@@ -21,15 +22,24 @@ Mode `pr` checks:
   * a kids title declares the kids module, and the kids module is not combined
     with simulated gambling;
   * `[budgets]` declares a first download size per platform and a cold start,
-    both within the standard's limits;
+    both within the standard's limits, and once GS-HAB-7 is `adopted` it
+    declares `first_fun_s` between 0 and 30 seconds;
+  * `[habit]` answers the habit rules the title adopted: two distinct
+    `daily_reasons` once GS-HAB-2 is `adopted`, a `session_minutes` between 2
+    and 5 once GS-HAB-10 is `adopted`, and an `auto_play` of `yes` or
+    `takeover-only` once GS-HAB-11 is `adopted` (an `auto_play = "yes"` beside
+    an `n/a` GS-HAB-11 is a warning);
   * when GS-LIVE-1 is `adopted`, `[paths] calendar` exists, parses, and every
     `[[event]]` has a template and an end after its start;
+  * once GS-HAB-9 is `adopted`, each of the next 8 weeks has a calendar event
+    (a warning in mode `pr`, an error in mode `release`);
   * a `keel.toml`, when present, keeps `[web.boot] module_kb` within the web
     budget.
 
 Mode `release` adds: no MUST may be only `planned`; the calendar's last event
-must end at least 56 days out (a warning in mode `pr`); and the file given as
-`--artifact` must fit the declared `first_download_mb` of its platform.
+must end at least 56 days out and every one of the next 8 weeks must have an
+event (both warnings in mode `pr`); and the file given as `--artifact` must fit
+the declared `first_download_mb` of its platform.
 
 Usage:
   check_game_standard.py [ROOT] [--mode pr|release] [--manifest game-standard.toml]
@@ -54,7 +64,8 @@ from datetime import date, datetime, timedelta
 HERE = pathlib.Path(__file__).resolve().parent
 DEFAULT_RULES = HERE / "rules.json"
 
-KNOWN_STANDARDS = ("1.0",)
+CURRENT_STANDARD = "1.1"
+KNOWN_STANDARDS = ("1.1", "1.0")
 SKIP_DIRS = {".git", "target", "node_modules", "vendor", "dist"}
 TITLE_ID = re.compile(r"^[a-z][a-z0-9]{1,23}$")
 HTTPS_URL = re.compile(r"^https://\S+$")
@@ -67,8 +78,14 @@ IMPLICIT_MODULE = "core"
 PLATFORMS = ("android", "ios", "web")
 FIRST_DOWNLOAD_MB = {"android": 150.0, "ios": 150.0, "web": 3.0}
 COLD_START_MAX_S = 5.0
+FIRST_FUN_MAX_S = 30.0
 WEB_BOOT_MODULE_KB_MAX = 3000
 CALENDAR_DAYS = 56
+CALENDAR_WEEKS = 8
+HABIT_REASONS = ("daily_seed", "daily_shop", "timed_chest", "daily_quests", "check_in", "daily_event")
+SESSION_MINUTES_MIN = 2
+SESSION_MINUTES_MAX = 5
+AUTO_PLAY = ("yes", "no", "takeover-only")
 STATUS_LABELS = {"n/a": "n/a", "missing": "missing", "invalid": "invalid", "must": "MUST to answer"}
 
 
@@ -134,6 +151,16 @@ def parse_status(rule_id: str, value: object, today: date) -> list[str]:
     return errors
 
 
+def status_kind(value: object) -> str:
+    """The kind word of one status, lowercased; "" when it is not a string."""
+    return value.strip().partition(" ")[0].lower() if isinstance(value, str) else ""
+
+
+def adopted_ids(statuses: dict) -> set[str]:
+    """The rule ids whose status is exactly `adopted`."""
+    return {rule_id for rule_id, value in statuses.items() if status_kind(value) == "adopted"}
+
+
 def is_toml_date(value: object) -> bool:
     return isinstance(value, (date, datetime))
 
@@ -178,18 +205,55 @@ def event_findings(where: str, index: int, event: object) -> tuple[list[Finding]
     return findings, None
 
 
-def check_calendar(path: pathlib.Path, where: str, mode: str, today: date) -> list[Finding]:
+def load_calendar(path: pathlib.Path, where: str) -> tuple[list | None, list[Finding]]:
+    """The `[[event]]` tables of a calendar file, and why it could not be read."""
     if not path.is_file():
-        return [Finding(where, "the calendar file is missing")]
+        return None, [Finding(where, "the calendar file is missing")]
     try:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as err:
-        return [Finding(where, f"does not parse as TOML: {err}")]
+        return None, [Finding(where, f"does not parse as TOML: {err}")]
     except (OSError, UnicodeDecodeError) as err:
-        return [Finding(where, f"cannot be read: {err}")]
+        return None, [Finding(where, f"cannot be read: {err}")]
     events = data.get("event", [])
     if not isinstance(events, list):
-        return [Finding(where, "[[event]] must be an array of tables")]
+        return None, [Finding(where, "[[event]] must be an array of tables")]
+    return events, []
+
+
+def event_spans(events: list) -> list[tuple[date, date]]:
+    """The date span of every [[event]] that has one."""
+    spans: list[tuple[date, date]] = []
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        start, end = event.get("start"), event.get("end")
+        if is_toml_date(start) and is_toml_date(end):
+            spans.append((as_date(start), as_date(end)))
+    return spans
+
+
+def check_calendar_weeks(events: list, where: str, mode: str, today: date) -> list[Finding]:
+    """GS-HAB-9: something new every week - each of the next 8 weeks has an event."""
+    spans = event_spans(events)
+    findings: list[Finding] = []
+    for week in range(CALENDAR_WEEKS):
+        start = today + timedelta(days=week * 7)
+        end = start + timedelta(days=7)
+        if not any(event_start < end and event_end > start for event_start, event_end in spans):
+            findings.append(
+                Finding(
+                    where,
+                    f"no event covers the week starting {start.isoformat()} (GS-HAB-9: something new "
+                    "every week)",
+                    warning=mode != "release",
+                ),
+            )
+    return findings
+
+
+def check_calendar(events: list, where: str, mode: str, today: date) -> list[Finding]:
+    """GS-LIVE-1: the calendar's events and how far past today they run."""
     findings: list[Finding] = []
     ends: list[date] = []
     for index, event in enumerate(events, start=1):
@@ -256,6 +320,14 @@ def check_manifest(
         findings.append(
             Finding(where, f'standard must be {", ".join(repr(s) for s in KNOWN_STANDARDS)} (found {standard!r})'),
         )
+    elif standard != CURRENT_STANDARD:
+        findings.append(
+            Finding(
+                where,
+                f'standard {standard!r} is superseded; move the manifest to standard = "{CURRENT_STANDARD}"',
+                warning=True,
+            ),
+        )
 
     title = data.get("title")
     if not isinstance(title, str) or not TITLE_ID.match(title):
@@ -302,8 +374,6 @@ def check_manifest(
     if "kids" in declared and gambling is True:
         findings.append(Finding(where, "the kids module forbids simulated_gambling = true"))
 
-    findings.extend(check_budgets(data.get("budgets"), where))
-
     by_id = {rule["id"]: rule for rule in rules["rules"]}
     statuses = data.get("rules")
     if not isinstance(statuses, dict):
@@ -325,6 +395,10 @@ def check_manifest(
                 Finding(where, f"{rule_id} is only planned; a release needs every MUST adopted or waived"),
             )
 
+    adopted = adopted_ids(statuses)
+    findings.extend(check_budgets(data.get("budgets"), where, adopted))
+    findings.extend(check_habit(data.get("habit"), where, adopted, statuses))
+
     required = must_ids(rules, declared)
     counts["must"] = len(required)
     for rule_id in required:
@@ -335,10 +409,10 @@ def check_manifest(
     return findings, counts
 
 
-def check_budgets(budgets: object, where: str) -> list[Finding]:
+def check_budgets(budgets: object, where: str, adopted: set[str]) -> list[Finding]:
     findings: list[Finding] = []
     if not isinstance(budgets, dict):
-        return [Finding(where, "[budgets] declares first_download_mb per platform and cold_start_s")]
+        return [Finding(where, "[budgets] declares first_download_mb per platform, cold_start_s and first_fun_s")]
     first = budgets.get("first_download_mb")
     if not isinstance(first, dict) or not first:
         findings.append(
@@ -362,6 +436,116 @@ def check_budgets(budgets: object, where: str) -> list[Finding]:
         findings.append(Finding(where, "cold_start_s must be a number of seconds"))
     elif cold > COLD_START_MAX_S:
         findings.append(Finding(where, f"cold_start_s is {cold:g} s, over the {COLD_START_MAX_S:g} s budget"))
+    first_fun = budgets.get("first_fun_s")
+    if first_fun is None:
+        if "GS-HAB-7" in adopted:
+            findings.append(
+                Finding(
+                    where,
+                    "[budgets] first_fun_s is required once GS-HAB-7 is adopted: the seconds to the "
+                    "first fun (a meaningful choice with feedback), at most 30",
+                ),
+            )
+    elif isinstance(first_fun, bool) or not isinstance(first_fun, (int, float)):
+        findings.append(Finding(where, "first_fun_s must be a number of seconds"))
+    elif first_fun > FIRST_FUN_MAX_S or first_fun <= 0:
+        findings.append(
+            Finding(
+                where,
+                f"first_fun_s is {first_fun:g} s; GS-HAB-7 needs it over 0 and at most {FIRST_FUN_MAX_S:g} s",
+            ),
+        )
+    return findings
+
+
+def check_habit(habit: object, where: str, adopted: set[str], statuses: dict) -> list[Finding]:
+    """[habit]: the daily reasons, the session length and the auto-play decision."""
+    findings: list[Finding] = []
+    table = habit if isinstance(habit, dict) else {}
+    if habit is not None and not isinstance(habit, dict):
+        findings.append(Finding(where, "[habit] must be a table"))
+
+    reasons = table.get("daily_reasons")
+    if reasons is None:
+        if "GS-HAB-2" in adopted:
+            findings.append(
+                Finding(
+                    where,
+                    "[habit] daily_reasons is required once GS-HAB-2 is adopted: at least two daily "
+                    "reasons to open",
+                ),
+            )
+    elif not isinstance(reasons, list) or not all(isinstance(reason, str) and reason.strip() for reason in reasons):
+        findings.append(
+            Finding(where, f"daily_reasons must be a list of daily reasons ({', '.join(HABIT_REASONS)})"),
+        )
+    else:
+        seen: set[str] = set()
+        for reason in reasons:
+            if reason not in HABIT_REASONS:
+                findings.append(
+                    Finding(where, f'daily_reasons "{reason}" is not a daily reason ({", ".join(HABIT_REASONS)})'),
+                )
+            elif reason in seen:
+                findings.append(Finding(where, f'daily_reasons lists "{reason}" twice'))
+            seen.add(reason)
+        if "GS-HAB-2" in adopted and len(seen) < 2:
+            findings.append(
+                Finding(where, "daily_reasons names fewer than the two daily reasons GS-HAB-2 needs"),
+            )
+
+    minutes = table.get("session_minutes")
+    if minutes is None:
+        if "GS-HAB-10" in adopted:
+            findings.append(
+                Finding(
+                    where,
+                    "[habit] session_minutes is required once GS-HAB-10 is adopted: the core unit of "
+                    "play, 2 to 5 minutes",
+                ),
+            )
+    elif isinstance(minutes, bool) or not isinstance(minutes, (int, float)):
+        findings.append(Finding(where, "session_minutes must be a number of minutes"))
+    elif not SESSION_MINUTES_MIN <= minutes <= SESSION_MINUTES_MAX:
+        findings.append(
+            Finding(
+                where,
+                f"session_minutes is {minutes:g}; GS-HAB-10 keeps the core unit of play between "
+                f"{SESSION_MINUTES_MIN} and {SESSION_MINUTES_MAX} minutes",
+            ),
+        )
+
+    auto_play = table.get("auto_play")
+    if auto_play is None:
+        if "GS-HAB-11" in adopted:
+            findings.append(
+                Finding(
+                    where,
+                    '[habit] auto_play is required once GS-HAB-11 is adopted: "yes", "no" or '
+                    '"takeover-only"',
+                ),
+            )
+    elif not isinstance(auto_play, str) or auto_play not in AUTO_PLAY:
+        findings.append(
+            Finding(where, f'auto_play must be "yes", "no" or "takeover-only" (found {auto_play!r})'),
+        )
+    else:
+        if "GS-HAB-11" in adopted and auto_play == "no":
+            findings.append(
+                Finding(
+                    where,
+                    'auto_play = "no" beside an adopted GS-HAB-11; its genre needs "yes" or '
+                    '"takeover-only", or the rule marked `n/a <reason>`',
+                ),
+            )
+        if status_kind(statuses.get("GS-HAB-11")) == "n/a" and auto_play == "yes":
+            findings.append(
+                Finding(
+                    where,
+                    'auto_play = "yes" while GS-HAB-11 is n/a; adopt the rule or set auto_play = "no"',
+                    warning=True,
+                ),
+            )
     return findings
 
 
@@ -397,14 +581,28 @@ def check(
         findings.extend(check_keel(keel, str(keel.relative_to(root))))
 
     statuses = data.get("rules") if isinstance(data.get("rules"), dict) else {}
-    live = statuses.get("GS-LIVE-1")
-    if isinstance(live, str) and live.strip().lower().startswith("adopted"):
+    adopted = adopted_ids(statuses)
+    # GS-LIVE-1 reads the calendar's events; GS-HAB-9 reads the weeks they cover.
+    wants_calendar = [rule for rule in ("GS-LIVE-1", "GS-HAB-9") if rule in adopted]
+    if wants_calendar:
         paths = data.get("paths")
         calendar = paths.get("calendar") if isinstance(paths, dict) else None
         if not isinstance(calendar, str) or not calendar.strip():
-            findings.append(Finding(manifest, "[paths] calendar is required once GS-LIVE-1 is adopted"))
+            needed = " and ".join(wants_calendar)
+            findings.append(
+                Finding(
+                    manifest,
+                    f"[paths] calendar is required once {needed} {'are' if len(wants_calendar) > 1 else 'is'} adopted",
+                ),
+            )
         else:
-            findings.extend(check_calendar(root / calendar, calendar, mode, today))
+            events, load_findings = load_calendar(root / calendar, calendar)
+            findings.extend(load_findings)
+            if events is not None:
+                if "GS-LIVE-1" in adopted:
+                    findings.extend(check_calendar(events, calendar, mode, today))
+                if "GS-HAB-9" in adopted:
+                    findings.extend(check_calendar_weeks(events, calendar, mode, today))
 
     if mode == "release" and artifact:
         findings.extend(check_artifact(root, data, artifact, artifact_platform))

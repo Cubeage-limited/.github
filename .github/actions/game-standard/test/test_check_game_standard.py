@@ -28,7 +28,8 @@ def musts(modules: tuple[str, ...]) -> list[str]:
     return sorted({rule["id"] for rule in RULES["rules"] if rule["level"] == "MUST" and rule["module"] in wanted})
 
 
-def event(template: str = "weekend-ladder", start: str = "2026-10-01", end: str = "2027-03-01") -> str:
+def event(template: str = "weekend-ladder", start: str = "2026-09-01", end: str = "2027-03-01") -> str:
+    """One [[event]]; by default it covers TODAY and the next 8 weeks."""
     return f'[[event]]\ntemplate = "{template}"\nstart = {start}\nend = {end}\n'
 
 
@@ -38,15 +39,23 @@ def manifest(
     drop: tuple[str, ...] = (),
     first_download: str = "{ android = 120, ios = 120, web = 3 }",
     cold_start: str = "5",
+    first_fun: str | None = "30",
+    daily_reasons: str | None = '["daily_seed", "check_in"]',
+    session_minutes: str | None = "3",
+    auto_play: str | None = '"yes"',
+    habit: bool = True,
     calendar: str | None = CALENDAR,
     rules_section: bool = True,
     **lines: str,
 ) -> str:
-    """A manifest that passes on its own; keyword arguments replace its lines."""
+    """A manifest that passes on its own; keyword arguments replace its lines.
+
+    `None` drops one line, and `habit=False` drops the whole `[habit]` table.
+    """
     entries = {rule: "adopted" for rule in musts(modules) if rule not in drop}
     entries.update(statuses or {})
     top = {
-        "standard": 'standard = "1.0"',
+        "standard": 'standard = "1.1"',
         "title": 'title = "ab12"',
         "audience": 'audience = "general"',
         "age_rating": 'age_rating = "18+"',
@@ -55,6 +64,13 @@ def manifest(
         "modules": "modules = [%s]" % ", ".join(json.dumps(module) for module in modules),
     }
     top.update(lines)
+    budgets = [
+        "[budgets]",
+        f"first_download_mb = {first_download}",
+        f"cold_start_s = {cold_start}",
+    ]
+    if first_fun is not None:
+        budgets.append(f"first_fun_s = {first_fun}")
     body = [
         top["standard"],
         top["title"],
@@ -64,11 +80,18 @@ def manifest(
         top["locales"],
         top["modules"],
         "",
-        "[budgets]",
-        f"first_download_mb = {first_download}",
-        f"cold_start_s = {cold_start}",
+        *budgets,
         "",
     ]
+    if habit:
+        table = ["[habit]"]
+        if daily_reasons is not None:
+            table.append(f"daily_reasons = {daily_reasons}")
+        if session_minutes is not None:
+            table.append(f"session_minutes = {session_minutes}")
+        if auto_play is not None:
+            table.append(f"auto_play = {auto_play}")
+        body += [*table, ""]
     if calendar is not None:
         body += ["[paths]", f"calendar = {json.dumps(calendar)}", ""]
     if rules_section:
@@ -136,6 +159,182 @@ class GameStandardTests(unittest.TestCase):
         self.assertFails(
             repo(manifest(modules=("multiplayer",), drop=(multiplayer_must,))),
             says=f"{multiplayer_must} has no status in [rules] (a multiplayer MUST)",
+        )
+
+    def test_standard_version(self) -> None:
+        self.assertPasses(repo())
+        out = run(repo(manifest(standard='standard = "1.0"')))
+        self.assertEqual(out.returncode, 0, out.stdout)
+        self.assertIn(
+            "::warning file=game-standard.toml::standard '1.0' is superseded; move the manifest to standard = \"1.1\"",
+            out.stdout,
+        )
+        self.assertFails(repo(manifest(standard='standard = "0.9"')), says="standard must be '1.1', '1.0'")
+        self.assertFails(repo(manifest(standard="standard = 1.1")), says="standard must be '1.1', '1.0'")
+
+    def test_first_fun_budget(self) -> None:
+        self.assertPasses(repo(manifest(first_fun="12")))
+        self.assertPasses(repo(manifest(first_fun="30")))
+        self.assertFails(
+            repo(manifest(first_fun="31")),
+            says="first_fun_s is 31 s; GS-HAB-7 needs it over 0 and at most 30 s",
+        )
+        self.assertFails(repo(manifest(first_fun="0")), says="first_fun_s is 0 s")
+        self.assertFails(repo(manifest(first_fun="-5")), says="first_fun_s is -5 s")
+        self.assertFails(repo(manifest(first_fun='"30"')), says="first_fun_s must be a number of seconds")
+        # Required only while GS-HAB-7 is adopted.
+        self.assertFails(
+            repo(manifest(first_fun=None)),
+            says="[budgets] first_fun_s is required once GS-HAB-7 is adopted",
+        )
+        self.assertPasses(
+            repo(manifest(first_fun=None, statuses={"GS-HAB-7": "n/a the first fun arrives later in this genre"})),
+        )
+        # Range-checked whenever it is there, adopted or not.
+        self.assertFails(
+            repo(manifest(first_fun="31", statuses={"GS-HAB-7": "n/a the first fun arrives later"})),
+            says="first_fun_s is 31 s",
+        )
+
+    def test_habit_daily_reasons(self) -> None:
+        self.assertPasses(repo())
+        self.assertPasses(repo(manifest(daily_reasons='["daily_seed", "daily_shop", "timed_chest"]')))
+        self.assertFails(
+            repo(manifest(daily_reasons='["daily_seed"]')),
+            says="daily_reasons names fewer than the two daily reasons GS-HAB-2 needs",
+        )
+        self.assertFails(repo(manifest(daily_reasons="[]")), says="daily_reasons names fewer than the two")
+        self.assertFails(
+            repo(manifest(daily_reasons='["daily_seed", "daily_seed"]')),
+            says='daily_reasons lists "daily_seed" twice',
+        )
+        self.assertFails(
+            repo(manifest(daily_reasons='["daily_seed", "check_in", "check_in"]')),
+            says='daily_reasons lists "check_in" twice',
+        )
+        self.assertFails(
+            repo(manifest(daily_reasons='["daily_seed", "wheel"]')),
+            says='daily_reasons "wheel" is not a daily reason',
+        )
+        self.assertFails(
+            repo(manifest(daily_reasons='"daily_seed"')),
+            says="daily_reasons must be a list of daily reasons",
+        )
+        self.assertFails(
+            repo(manifest(daily_reasons=None)),
+            says="[habit] daily_reasons is required once GS-HAB-2 is adopted",
+        )
+        self.assertFails(repo(manifest(habit=False)), says="daily_reasons is required")
+        self.assertPasses(
+            repo(manifest(daily_reasons=None, statuses={"GS-HAB-2": "n/a no daily reasons yet"})),
+        )
+
+    def test_habit_session_minutes(self) -> None:
+        self.assertPasses(repo(manifest(session_minutes="2")))
+        self.assertPasses(repo(manifest(session_minutes="5")))
+        self.assertPasses(repo(manifest(session_minutes="3.5")))
+        self.assertFails(
+            repo(manifest(session_minutes="1")),
+            says="session_minutes is 1; GS-HAB-10 keeps the core unit of play between 2 and 5 minutes",
+        )
+        self.assertFails(repo(manifest(session_minutes="6")), says="session_minutes is 6")
+        self.assertFails(repo(manifest(session_minutes='"3"')), says="session_minutes must be a number of minutes")
+        self.assertFails(
+            repo(manifest(session_minutes=None)),
+            says="[habit] session_minutes is required once GS-HAB-10 is adopted",
+        )
+        # Range-checked whenever it is there, adopted or not.
+        self.assertFails(
+            repo(manifest(session_minutes="1", statuses={"GS-HAB-10": "n/a the sessions here run long"})),
+            says="session_minutes is 1",
+        )
+        self.assertPasses(
+            repo(manifest(session_minutes=None, statuses={"GS-HAB-10": "waived revived legacy build | 2027-03-31"})),
+        )
+
+    def test_habit_auto_play(self) -> None:
+        self.assertPasses(repo(manifest(auto_play='"yes"')))
+        self.assertPasses(repo(manifest(auto_play='"takeover-only"')))
+        self.assertFails(
+            repo(manifest(auto_play='"no"')),
+            says='auto_play = "no" beside an adopted GS-HAB-11',
+        )
+        self.assertFails(
+            repo(manifest(auto_play=None)),
+            says="[habit] auto_play is required once GS-HAB-11 is adopted",
+        )
+        self.assertFails(
+            repo(manifest(auto_play='"maybe"')),
+            says='auto_play must be "yes", "no" or "takeover-only"',
+        )
+        self.assertFails(repo(manifest(auto_play="true")), says='auto_play must be "yes", "no" or "takeover-only"')
+        # A genre where GS-HAB-11 is n/a: "yes" warns, "no" is silent.
+        warned = run(repo(manifest(auto_play='"yes"', statuses={"GS-HAB-11": "n/a solving is the fun"})))
+        self.assertEqual(warned.returncode, 0, warned.stdout)
+        self.assertIn(
+            '::warning file=game-standard.toml::auto_play = "yes" while GS-HAB-11 is n/a; '
+            'adopt the rule or set auto_play = "no"',
+            warned.stdout,
+        )
+        quiet = self.assertPasses(repo(manifest(auto_play='"no"', statuses={"GS-HAB-11": "n/a solving is the fun"})))
+        self.assertNotIn("::warning", quiet)
+
+    def test_calendar_weeks(self) -> None:
+        # The default fixture covers today and the next 8 weeks, so a release passes.
+        self.assertPasses(repo(), args=("--mode", "release"))
+
+        # One week only: the other seven weeks each warn in pr and error in release.
+        one_week = event(start="2026-09-27", end="2026-10-04")
+        warned = run(repo(**{CALENDAR: one_week}))
+        self.assertEqual(warned.returncode, 0, warned.stdout)
+        self.assertIn(
+            "::warning file=liveops/calendar.toml::no event covers the week starting 2026-10-04",
+            warned.stdout,
+        )
+        self.assertFails(
+            repo(**{CALENDAR: one_week}),
+            args=("--mode", "release"),
+            says="no event covers the week starting 2026-10-04",
+        )
+        self.assertFails(
+            repo(**{CALENDAR: one_week}),
+            args=("--mode", "release"),
+            # today + 7 x 7 days: the last of the 8 windows
+            says="no event covers the week starting 2026-11-15",
+        )
+        # An event that abuts the next window without overlapping it leaves it empty.
+        self.assertFails(
+            repo(**{CALENDAR: event(start="2026-09-27", end="2026-10-04") + event(start="2026-10-04", end="2026-10-11")}),
+            args=("--mode", "release"),
+            says="no event covers the week starting 2026-10-11",
+        )
+        # A gap in the middle is named by its own week, and only that week.
+        gapped = event(start="2026-09-01", end="2026-10-05") + event(start="2026-10-19", end="2027-03-01")
+        out = self.assertFails(
+            repo(**{CALENDAR: gapped}),
+            args=("--mode", "release"),
+            says="no event covers the week starting 2026-10-11",
+        )
+        self.assertEqual(out.count("no event covers the week starting"), 1)
+        # No weekly check once GS-HAB-9 is n/a.
+        skipped = self.assertPasses(repo(manifest(statuses={"GS-HAB-9": "n/a no weekly rotation yet"}), **{CALENDAR: one_week}))
+        self.assertNotIn("no event covers the week starting", skipped)
+
+    def test_the_calendar_path_is_required_by_gs_hab_9_too(self) -> None:
+        self.assertFails(
+            repo(
+                manifest(statuses={"GS-LIVE-1": "n/a no live-ops calendar yet"}, calendar=None),
+                **{CALENDAR: None},
+            ),
+            says="[paths] calendar is required once GS-HAB-9 is adopted",
+        )
+        self.assertFails(
+            repo(manifest(calendar=None), **{CALENDAR: None}),
+            says="[paths] calendar is required once GS-LIVE-1 and GS-HAB-9 are adopted",
+        )
+        self.assertFails(
+            repo(manifest(statuses={"GS-LIVE-1": "n/a no live-ops calendar yet"}), **{CALENDAR: None}),
+            says="the calendar file is missing",
         )
 
     def test_unknown_rule_id_fails(self) -> None:
@@ -208,15 +407,25 @@ class GameStandardTests(unittest.TestCase):
         self.assertPasses(repo(manifest(first_download="{ web = 3 }", cold_start="4.5")))
 
     def test_the_calendar_is_checked_once_gs_live_1_is_adopted(self) -> None:
-        # Nothing to read when GS-LIVE-1 is not adopted, even with no [paths] and no file.
+        # Nothing to read when neither GS-LIVE-1 nor GS-HAB-9 is adopted, even with no [paths] and no file.
         self.assertPasses(
-            repo(manifest(statuses={"GS-LIVE-1": "n/a no live-ops calendar yet"}, calendar=None), **{CALENDAR: None}),
+            repo(
+                manifest(
+                    statuses={
+                        "GS-LIVE-1": "n/a no live-ops calendar yet",
+                        "GS-HAB-9": "n/a nothing weekly to look forward to yet",
+                    },
+                    calendar=None,
+                ),
+                **{CALENDAR: None},
+            ),
         )
         self.assertFails(
-            repo(manifest(calendar=None)),
+            repo(manifest(statuses={"GS-HAB-9": "n/a nothing weekly to look forward to yet"}, calendar=None)),
             says="[paths] calendar is required once GS-LIVE-1 is adopted",
         )
-        self.assertFails(repo(**{CALENDAR: None}), says="the calendar file is missing")
+        out = self.assertFails(repo(**{CALENDAR: None}), says="the calendar file is missing")
+        self.assertEqual(out.count("the calendar file is missing"), 1)
         self.assertFails(repo(**{CALENDAR: "[[event]\n"}), says="does not parse as TOML")
         self.assertFails(
             repo(**{CALENDAR: event(start="2026-12-01", end="2026-10-01")}),
