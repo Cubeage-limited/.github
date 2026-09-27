@@ -55,6 +55,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 DEFAULT_RULES = HERE / "rules.json"
 
 KNOWN_STANDARDS = ("1.0",)
+SKIP_DIRS = {".git", "target", "node_modules", "vendor", "dist"}
 TITLE_ID = re.compile(r"^[a-z][a-z0-9]{1,23}$")
 HTTPS_URL = re.compile(r"^https://\S+$")
 WAIVER_DATE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
@@ -390,7 +391,10 @@ def check(
         return [Finding(manifest, f"cannot be read: {err}")], counts
 
     findings, counts = check_manifest(data, rules, manifest, mode, today)
-    findings.extend(check_keel(root / "keel.toml"))
+    for keel in sorted(root.glob("**/keel.toml")):
+        if any(part in SKIP_DIRS for part in keel.relative_to(root).parts):
+            continue
+        findings.extend(check_keel(keel, str(keel.relative_to(root))))
 
     statuses = data.get("rules") if isinstance(data.get("rules"), dict) else {}
     live = statuses.get("GS-LIVE-1")
