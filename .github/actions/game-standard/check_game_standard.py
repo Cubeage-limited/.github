@@ -70,8 +70,15 @@ from datetime import date, datetime, timedelta
 HERE = pathlib.Path(__file__).resolve().parent
 DEFAULT_RULES = HERE / "rules.json"
 
-CURRENT_STANDARD = "1.2"
-KNOWN_STANDARDS = ("1.2", "1.1", "1.0")
+
+def known_standards(current: str) -> tuple[str, ...]:
+    """Every version up to the one rules.json carries, newest first: "1.3" -> ("1.3", "1.2", "1.1", "1.0").
+
+    rules.json is the one source of the current version, so a new version of
+    the standard needs no change to this file.
+    """
+    major, _, minor = current.partition(".")
+    return tuple(f"{major}.{m}" for m in range(int(minor), -1, -1))
 SKIP_DIRS = {".git", "target", "node_modules", "vendor", "dist"}
 TITLE_ID = re.compile(r"^[a-z][a-z0-9]{1,23}$")
 HTTPS_URL = re.compile(r"^https://\S+$")
@@ -404,16 +411,18 @@ def check_manifest(
     findings: list[Finding] = []
     counts = empty_counts()
 
+    current = rules["standard"]
+    known = known_standards(current)
     standard = data.get("standard")
-    if standard not in KNOWN_STANDARDS:
+    if standard not in known:
         findings.append(
-            Finding(where, f'standard must be {", ".join(repr(s) for s in KNOWN_STANDARDS)} (found {standard!r})'),
+            Finding(where, f'standard must be {", ".join(repr(s) for s in known)} (found {standard!r})'),
         )
-    elif standard != CURRENT_STANDARD:
+    elif standard != current:
         findings.append(
             Finding(
                 where,
-                f'standard {standard!r} is superseded; move the manifest to standard = "{CURRENT_STANDARD}"',
+                f'standard {standard!r} is superseded; move the manifest to standard = "{current}"',
                 warning=True,
             ),
         )
