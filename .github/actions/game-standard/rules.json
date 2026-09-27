@@ -1,0 +1,772 @@
+{
+  "standard": "1.0",
+  "doc": "Cubeage/cubeage-platform docs/standards/game-standard.md",
+  "modules": [
+    "core",
+    "multiplayer",
+    "card-board",
+    "competitive",
+    "collection",
+    "sim",
+    "casual",
+    "ai-native",
+    "kids"
+  ],
+  "rules": [
+    {
+      "id": "GS-BND-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-BND-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-BND-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-BND-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-BOT-1",
+      "level": "MUST",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-BOT-2",
+      "level": "MUST",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-BOT-3",
+      "level": "MUST",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-BOT-4",
+      "level": "MUST",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-BOT-5",
+      "level": "MUST",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-BOT-6",
+      "level": "MUST",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-BOT-7",
+      "level": "SHOULD",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-MM-1",
+      "level": "MUST",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-MM-2",
+      "level": "MUST",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-MM-3",
+      "level": "SHOULD",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-START-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-START-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-START-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-START-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-START-5",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-ONB-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-ONB-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-ONB-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-ONB-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-ONB-5",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-LIVE-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-LIVE-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-LIVE-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-LIVE-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-LIVE-5",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-REV-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-REV-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-REV-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-REV-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-REV-5",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-IAP-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-IAP-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-IAP-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-IAP-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-IAP-5",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-IAP-6",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-SUB-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-SUB-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-SUB-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-SUB-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-SUB-5",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-SUB-6",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-SUB-7",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-SUB-8",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-SUB-9",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-SUB-10",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-SUB-11",
+      "level": "MAY",
+      "module": "core"
+    },
+    {
+      "id": "GS-OFF-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-OFF-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-OFF-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-ECON-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-ECON-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-ECON-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-ECON-4",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-SOC-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-SOC-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-SOC-3",
+      "level": "MUST",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-SOC-4",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-SOC-5",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-SOC-6",
+      "level": "SHOULD",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-GLD-1",
+      "level": "MUST",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-GLD-2",
+      "level": "MUST",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-GLD-3",
+      "level": "MUST",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-GLD-4",
+      "level": "SHOULD",
+      "module": "multiplayer"
+    },
+    {
+      "id": "GS-GIFT-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-GIFT-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-TRD-1",
+      "level": "MAY",
+      "module": "core"
+    },
+    {
+      "id": "GS-TRD-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-RET-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-RET-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-RET-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-RET-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-RET-5",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-RET-6",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-INV-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-INV-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-INV-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-INV-4",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-GROW-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-GROW-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-GROW-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-GROW-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-GROW-5",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-GROW-6",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-GROW-7",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-CRE-1",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-CRE-2",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-CRE-3",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-CRE-4",
+      "level": "MAY",
+      "module": "core"
+    },
+    {
+      "id": "GS-UGC-1",
+      "level": "MAY",
+      "module": "core"
+    },
+    {
+      "id": "GS-UGC-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-UGC-3",
+      "level": "MAY",
+      "module": "core"
+    },
+    {
+      "id": "GS-UGC-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-VAR-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-VAR-2",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-L10N-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-L10N-2",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-L10N-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-L10N-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-L10N-5",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-L10N-6",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-L10N-7",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-IP-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-IP-2",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
+      "id": "GS-IP-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-AI-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-AI-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-AI-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-AI-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-AI-5",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-DATA-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-DATA-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-DATA-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-DATA-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-DATA-5",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-CMP-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-CMP-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-CMP-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-RFD-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-RFD-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-RFD-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-RFD-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-RFD-5",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-RFD-6",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-RFD-7",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-MOD-CB-1",
+      "level": "MUST",
+      "module": "card-board"
+    },
+    {
+      "id": "GS-MOD-CB-2",
+      "level": "MUST",
+      "module": "card-board"
+    },
+    {
+      "id": "GS-MOD-CB-3",
+      "level": "MUST",
+      "module": "card-board"
+    },
+    {
+      "id": "GS-MOD-PV-1",
+      "level": "MUST",
+      "module": "competitive"
+    },
+    {
+      "id": "GS-MOD-PV-2",
+      "level": "MUST",
+      "module": "competitive"
+    },
+    {
+      "id": "GS-MOD-PV-3",
+      "level": "MUST",
+      "module": "competitive"
+    },
+    {
+      "id": "GS-MOD-PV-4",
+      "level": "SHOULD",
+      "module": "competitive"
+    },
+    {
+      "id": "GS-MOD-CR-1",
+      "level": "MUST",
+      "module": "collection"
+    },
+    {
+      "id": "GS-MOD-CR-2",
+      "level": "MUST",
+      "module": "collection"
+    },
+    {
+      "id": "GS-MOD-CR-3",
+      "level": "SHOULD",
+      "module": "collection"
+    },
+    {
+      "id": "GS-MOD-SM-1",
+      "level": "MUST",
+      "module": "sim"
+    },
+    {
+      "id": "GS-MOD-SM-2",
+      "level": "MUST",
+      "module": "sim"
+    },
+    {
+      "id": "GS-MOD-SM-3",
+      "level": "SHOULD",
+      "module": "sim"
+    },
+    {
+      "id": "GS-MOD-CZ-1",
+      "level": "MUST",
+      "module": "casual"
+    },
+    {
+      "id": "GS-MOD-CZ-2",
+      "level": "MUST",
+      "module": "casual"
+    },
+    {
+      "id": "GS-MOD-CZ-3",
+      "level": "SHOULD",
+      "module": "casual"
+    },
+    {
+      "id": "GS-MOD-AN-1",
+      "level": "MUST",
+      "module": "ai-native"
+    },
+    {
+      "id": "GS-MOD-AN-2",
+      "level": "MUST",
+      "module": "ai-native"
+    },
+    {
+      "id": "GS-MOD-AN-3",
+      "level": "MUST",
+      "module": "ai-native"
+    },
+    {
+      "id": "GS-MOD-KE-1",
+      "level": "MUST",
+      "module": "kids"
+    },
+    {
+      "id": "GS-MOD-KE-2",
+      "level": "MUST",
+      "module": "kids"
+    },
+    {
+      "id": "GS-MOD-KE-3",
+      "level": "MUST",
+      "module": "kids"
+    }
+  ]
+}

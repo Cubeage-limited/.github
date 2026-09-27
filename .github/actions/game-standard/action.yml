@@ -1,0 +1,58 @@
+name: game-standard
+description: >
+  Check a title's game-standard.toml against the Cubeage Game Standard: the
+  manifest, the MUST rules it answers, its declared budgets, and the live-ops
+  calendar. Reads no network; carries only rule ids, levels and module names.
+inputs:
+  mode:
+    description: >
+      "pr" checks the declaration; "release" also refuses a MUST that is only
+      planned, checks the calendar covers the next 56 days, and checks
+      --artifact against its declared budget.
+    required: false
+    default: pr
+  manifest:
+    description: The manifest path, relative to the repository root.
+    required: false
+    default: game-standard.toml
+  artifact:
+    description: >
+      Path to the built release artifact, checked against the manifest's
+      first_download_mb for --artifact-platform (mode release only).
+    required: false
+  artifact-platform:
+    description: The platform --artifact was built for - android, ios or web.
+    required: false
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        MODE: ${{ inputs.mode }}
+        MANIFEST: ${{ inputs.manifest }}
+        ARTIFACT: ${{ inputs.artifact }}
+        ARTIFACT_PLATFORM: ${{ inputs.artifact-platform }}
+      run: |
+        set -euo pipefail
+        # tomllib is Python 3.11+. Take the first interpreter that has it, so a
+        # runner with an older default python3 still works when a newer one is
+        # installed beside it.
+        python=""
+        for candidate in python3.13 python3.12 python3.11 python3; do
+          if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c 'import tomllib' >/dev/null 2>&1; then
+            python="$candidate"
+            break
+          fi
+        done
+        if [ -z "$python" ]; then
+          echo "::error::the game-standard check needs Python 3.11 or newer (tomllib); this runner has no such interpreter"
+          exit 1
+        fi
+        args=("$GITHUB_WORKSPACE" "--mode" "$MODE" "--manifest" "$MANIFEST")
+        if [ -n "$ARTIFACT" ]; then
+          args+=("--artifact" "$ARTIFACT")
+        fi
+        if [ -n "$ARTIFACT_PLATFORM" ]; then
+          args+=("--artifact-platform" "$ARTIFACT_PLATFORM")
+        fi
+        exec "$python" "$GITHUB_ACTION_PATH/check_game_standard.py" "${args[@]}"
