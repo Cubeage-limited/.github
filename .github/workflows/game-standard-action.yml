@@ -1,0 +1,32 @@
+name: game-standard-action
+
+# The game-standard action's own tests. This repository is public, so GitHub's
+# free standard hosted runners are allowed here (content-checks.yml runs the
+# same way); a title repository runs the action on sylphx-linux-standard.
+on:
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Unit tests
+        run: python3 -m unittest discover -s .github/actions/game-standard/test
+      - name: The action runs, and fails closed in a repository with no manifest
+        id: no-manifest
+        continue-on-error: true
+        uses: ./.github/actions/game-standard
+      - name: Assert it failed
+        if: steps.no-manifest.outcome != 'failure'
+        run: |
+          echo "::error::the game-standard action passed with no game-standard.toml; it must fail closed"
+          exit 1

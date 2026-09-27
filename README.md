@@ -17,6 +17,16 @@ Sylphx Runners.
   Every Cubeage repository carries its own copy calling the shared
   `SylphxAI/.github` actions: `plain-language` (advisory, never blocks) and
   `zh-hant` (advisory until 2026-10-02, then a required check).
+- `.github/actions/game-standard/`: the shared check that keeps a title's
+  `game-standard.toml` in step with the Cubeage Game Standard: the module MUST
+  rules it answers, its declared first-download and cold-start budgets, and its
+  live-ops calendar. It carries rule ids, levels and module names only, and
+  title repositories call it from a copy of
+  `workflow-templates/game-standard.yml` (a private repository runs it on
+  `sylphx-linux-standard`). Every pull request runs mode `pr`; a release
+  workflow passes `mode: release` and the built artifact, which must then fit
+  the declared budget. Its tests run in
+  `.github/workflows/game-standard-action.yml`.
 - `scripts/pages-publish.sh`: the one Cloudflare Pages upload every Keel
   title's `scripts/deploy_pages.sh` calls, fetched at a pinned commit from
   `https://raw.githubusercontent.com/Cubeage/.github/<sha>/scripts/pages-publish.sh`.

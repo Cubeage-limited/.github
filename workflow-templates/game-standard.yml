@@ -1,0 +1,24 @@
+# Copy this file to your repo: .github/workflows/game-standard.yml
+# Then pin the `uses:` line below to a commit of Cubeage/.github (a title
+# repository never runs a moving ref). A private repository keeps
+# `runs-on: sylphx-linux-standard`; a public one may use `ubuntu-latest`.
+
+name: game-standard
+
+on:
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+jobs:
+  game-standard:
+    runs-on: sylphx-linux-standard
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: Cubeage/.github/.github/actions/game-standard@main # pin to a commit
+        with:
+          mode: pr
+          manifest: game-standard.toml

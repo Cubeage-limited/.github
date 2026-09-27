@@ -1,0 +1,7 @@
+{
+  "name": "Cubeage Game Standard",
+  "description": "Check game-standard.toml against the Cubeage Game Standard: module MUST rules, declared download and start-up budgets, and the live-ops calendar.",
+  "iconName": "octicon shield-check",
+  "categories": ["Continuous integration"],
+  "filePatterns": ["game-standard.toml"]
+}

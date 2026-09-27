@@ -45,7 +45,15 @@ deployments, or production support.
   Cubeage title repositories fetch at a pinned commit.
 - Template metadata: `workflow-templates/ios-app-store.properties.json` (the
   matching `ios-app-store.yml` template is missing from the repository).
-- This repository's own content checks: `.github/workflows/content-checks.yml`.
+- Shared action: `.github/actions/game-standard/`, the check title
+  repositories run on their `game-standard.toml` (rule ids, levels and module
+  names only, no business content).
+- Workflow template: `workflow-templates/game-standard.yml`, the caller
+  example title repositories copy, with its
+  `workflow-templates/game-standard.properties.json` metadata.
+- This repository's own content checks: `.github/workflows/content-checks.yml`;
+  the game-standard action's own tests:
+  `.github/workflows/game-standard-action.yml`.
 - Operator documentation: `README.md`.
 
 ## Delivery Proof
