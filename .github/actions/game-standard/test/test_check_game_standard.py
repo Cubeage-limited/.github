@@ -282,6 +282,13 @@ class GameStandardTests(unittest.TestCase):
         )
         self.assertPasses(repo(**{"keel.toml": "[web]\nname = 'ab12'\n"}))
 
+    def test_nested_keel_toml_is_checked_and_build_dirs_are_skipped(self) -> None:
+        self.assertFails(
+            repo(**{"crates/ab12-web/keel.toml": "[web.boot]\nmodule_kb = 3100\n"}),
+            says="[web.boot] module_kb is 3100 KB, over the 3000 KB web budget",
+        )
+        self.assertPasses(repo(**{"target/wasm/keel.toml": "[web.boot]\nmodule_kb = 9999\n"}))
+
     def test_summary_table(self) -> None:
         files = repo(manifest(statuses={"GS-LIVE-2": "n/a not a live-ops title"}))
         out = run(files, summary=True)
