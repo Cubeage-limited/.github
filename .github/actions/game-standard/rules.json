@@ -109,6 +109,31 @@
       "module": "core"
     },
     {
+      "id": "GS-ONB-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-ONB-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-ONB-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-ONB-4",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-ONB-5",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
       "id": "GS-LIVE-1",
       "level": "MUST",
       "module": "core"
@@ -379,6 +404,26 @@
       "module": "core"
     },
     {
+      "id": "GS-INV-1",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-INV-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-INV-3",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-INV-4",
+      "level": "SHOULD",
+      "module": "core"
+    },
+    {
       "id": "GS-GROW-1",
       "level": "MUST",
       "module": "core"
@@ -431,6 +476,26 @@
     {
       "id": "GS-CRE-4",
       "level": "MAY",
+      "module": "core"
+    },
+    {
+      "id": "GS-UGC-1",
+      "level": "MAY",
+      "module": "core"
+    },
+    {
+      "id": "GS-UGC-2",
+      "level": "MUST",
+      "module": "core"
+    },
+    {
+      "id": "GS-UGC-3",
+      "level": "MAY",
+      "module": "core"
+    },
+    {
+      "id": "GS-UGC-4",
+      "level": "MUST",
       "module": "core"
     },
     {
