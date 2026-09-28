@@ -1,5 +1,5 @@
 {
-  "standard": "1.3.3",
+  "standard": "1.4",
   "doc": "Cubeage/cubeage-platform docs/standards/game-standard.md",
   "modules": [
     "core",
@@ -10,6 +10,7 @@
     "sim",
     "casual",
     "ai-native",
+    "agent-play",
     "kids"
   ],
   "rules": [
@@ -907,6 +908,56 @@
       "id": "GS-MOD-AN-3",
       "level": "MUST",
       "module": "ai-native"
+    },
+    {
+      "id": "GS-MOD-AG-1",
+      "level": "MUST",
+      "module": "agent-play"
+    },
+    {
+      "id": "GS-MOD-AG-2",
+      "level": "MUST",
+      "module": "agent-play"
+    },
+    {
+      "id": "GS-MOD-AG-3",
+      "level": "MUST",
+      "module": "agent-play"
+    },
+    {
+      "id": "GS-MOD-AG-4",
+      "level": "MUST",
+      "module": "agent-play"
+    },
+    {
+      "id": "GS-MOD-AG-5",
+      "level": "MUST",
+      "module": "agent-play"
+    },
+    {
+      "id": "GS-MOD-AG-6",
+      "level": "SHOULD",
+      "module": "agent-play"
+    },
+    {
+      "id": "GS-MOD-AG-7",
+      "level": "SHOULD",
+      "module": "agent-play"
+    },
+    {
+      "id": "GS-MOD-AG-8",
+      "level": "SHOULD",
+      "module": "agent-play"
+    },
+    {
+      "id": "GS-MOD-AG-9",
+      "level": "MUST",
+      "module": "agent-play"
+    },
+    {
+      "id": "GS-MOD-AG-10",
+      "level": "MUST",
+      "module": "agent-play"
     },
     {
       "id": "GS-MOD-KE-1",
