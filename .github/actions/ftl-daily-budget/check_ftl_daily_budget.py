@@ -413,7 +413,7 @@ def count_device_steps(
 def gcloud_access_token() -> str:
     """`gcloud auth print-access-token`, which the workflow has authenticated.
 
-    Only the exit status and the last line of stderr are ever printed - the
+    Only the exit status and the first line of stderr are ever printed - the
     token itself is not.
     """
     try:
