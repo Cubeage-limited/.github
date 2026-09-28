@@ -40,7 +40,6 @@ deployments, or production support.
 ## Public Surfaces
 
 - Reusable workflow: `.github/workflows/ios-sign-and-build.yml`.
-- Reusable workflow: `.github/workflows/firebase-app-distribution.yml`.
 - Shared script: `scripts/pages-publish.sh`, the Cloudflare Pages upload that
   Cubeage title repositories fetch at a pinned commit.
 - Template metadata: `workflow-templates/ios-app-store.properties.json` (the

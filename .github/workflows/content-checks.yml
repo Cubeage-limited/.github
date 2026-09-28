@@ -46,3 +46,21 @@ jobs:
         run: python3 .github/actions/self-hosted-runners/test/test_check_runners.py
       - name: Guard this repository (local action, same code other repos call)
         uses: ./.github/actions/self-hosted-runners
+
+  retired-services:
+    # owner#799: the retired outside tester-distribution and device-preview
+    # services stay gone - no step, not even a notice one - so no workflow here
+    # may put either name back. The fence lives in
+    # scripts/check_retired_distribution.py so this file cannot trip it.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Fence self-test (proves it catches every spelling)
+        run: python3 scripts/check_retired_distribution.py --self-test
+      - name: No workflow names a retired distribution service
+        run: python3 scripts/check_retired_distribution.py
+

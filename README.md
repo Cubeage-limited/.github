@@ -11,8 +11,6 @@ Sylphx Runners.
 
 ## Other shared files
 
-- `.github/workflows/firebase-app-distribution.yml`: reusable workflow that
-  uploads an Android APK/AAB to Firebase App Distribution.
 - `.github/workflows/content-checks.yml`: this repository's own content checks.
   Every Cubeage repository carries its own copy calling the shared
   `SylphxAI/.github` actions: `plain-language` (advisory, never blocks) and
