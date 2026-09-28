@@ -27,6 +27,13 @@ Sylphx Runners.
   workflow passes `mode: release` and the built artifact, which must then fit
   the declared budget. Its tests run in
   `.github/workflows/game-standard-action.yml`.
+- `.github/actions/ftl-daily-budget/`: the guard a title's Test Lab step runs
+  immediately before `gcloud firebase test`. It counts the day's Test Lab steps
+  in the project (midnight to midnight, America/Los_Angeles) from the Tool
+  Results API and fails the job when the run would pass the daily allowance -
+  physical 3, virtual 10 - with the message that spending needs owner approval.
+  It fails closed whenever it cannot prove the count. Its tests run in
+  `.github/workflows/ftl-daily-budget-action.yml`.
 - `scripts/pages-publish.sh`: the one Cloudflare Pages upload every Keel
   title's `scripts/deploy_pages.sh` calls, fetched at a pinned commit from
   `https://raw.githubusercontent.com/Cubeage/.github/<sha>/scripts/pages-publish.sh`.

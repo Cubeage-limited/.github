@@ -45,6 +45,10 @@ deployments, or production support.
   Cubeage title repositories fetch at a pinned commit.
 - Template metadata: `workflow-templates/ios-app-store.properties.json` (the
   matching `ios-app-store.yml` template is missing from the repository).
+- Shared action: `.github/actions/ftl-daily-budget/`, the guard that counts a
+  project's Test Lab steps for the current day (America/Los_Angeles) from the
+  Tool Results API and refuses a run that would pass the daily allowance for its
+  device kind, failing closed whenever it cannot prove the count.
 - Shared action: `.github/actions/game-standard/`, the check title
   repositories run on their `game-standard.toml` (rule ids, levels and module
   names only, no business content).
@@ -53,7 +57,8 @@ deployments, or production support.
   `workflow-templates/game-standard.properties.json` metadata.
 - This repository's own content checks: `.github/workflows/content-checks.yml`;
   the game-standard action's own tests:
-  `.github/workflows/game-standard-action.yml`.
+  `.github/workflows/game-standard-action.yml`; the ftl-daily-budget action's
+  own tests: `.github/workflows/ftl-daily-budget-action.yml`.
 - Operator documentation: `README.md`.
 
 ## Delivery Proof
