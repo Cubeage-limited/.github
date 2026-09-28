@@ -102,8 +102,10 @@ The standard's version moves with its rules: `rules.json` beside the action
 names the version it carries (`standard`), and a rule added or removed raises
 that version by one minor. A change that only relaxes the standard, removing or
 downgrading obligations without adding any, goes up by one patch instead
-(`1.3` to `1.3.1`), and the versions it relaxes stay known. The action reads the
-current version from `rules.json`, so a new version changes only that file. A
+(`1.3` to `1.3.1`), and the versions it relaxes stay known. So does a rule
+that only points at an owner standard already binding every product (`1.3.2`).
+The action reads the current version from `rules.json`, so a new version
+changes only that file. A
 manifest on an earlier 1.x version, patch line included, warns and asks for the
 current one; any other version fails.
 
