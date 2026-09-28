@@ -1,0 +1,57 @@
+name: ftl-daily-budget
+description: >
+  Refuse a Firebase Test Lab run that would pass the project's daily budget for
+  the device kind it uses, counted from the Tool Results API. Spending needs the
+  owner's approval, so the guard fails closed: an unreadable count, an unknown
+  device or a missing timestamp all stop the run rather than let it through.
+  Runs after the workflow has authenticated gcloud, immediately before the step
+  that calls `gcloud firebase test`.
+inputs:
+  project:
+    description: The Google Cloud project Test Lab runs in.
+    required: true
+  kind:
+    description: >
+      The device kind this run adds: "physical" or "virtual". Physical device
+      time is the expensive part of the quota.
+    required: true
+  max-per-day:
+    description: The most devices of this kind the Test Lab day may use, this run included.
+    required: true
+  devices:
+    description: >
+      How many devices this run will add (default 1). A step that can run the
+      device more than once - a retry loop, a control arm - passes its maximum.
+    required: false
+    default: "1"
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        PROJECT: ${{ inputs.project }}
+        KIND: ${{ inputs.kind }}
+        MAX_PER_DAY: ${{ inputs.max-per-day }}
+        DEVICES: ${{ inputs.devices }}
+      run: |
+        set -euo pipefail
+        # zoneinfo needs Python 3.9 and a time zone database; take the first
+        # interpreter that can resolve the Test Lab day's own zone, so a runner
+        # with an older default python3 still works.
+        python=""
+        for candidate in python3.13 python3.12 python3.11 python3.10 python3; do
+          if command -v "$candidate" >/dev/null 2>&1 &&
+            "$candidate" -c 'import zoneinfo; zoneinfo.ZoneInfo("America/Los_Angeles")' >/dev/null 2>&1; then
+            python="$candidate"
+            break
+          fi
+        done
+        if [ -z "$python" ]; then
+          echo "::error::the Test Lab daily budget guard needs Python 3.9 or newer with a time zone database, and this runner has no such interpreter"
+          exit 1
+        fi
+        exec "$python" "$GITHUB_ACTION_PATH/check_ftl_daily_budget.py" \
+          --project "$PROJECT" \
+          --kind "$KIND" \
+          --max-per-day "$MAX_PER_DAY" \
+          --devices "$DEVICES"
