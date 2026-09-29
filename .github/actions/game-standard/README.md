@@ -8,7 +8,7 @@ but the repository it is pointed at.
 ## What a title declares
 
 ```toml
-standard = "1.4"             # the current version (rules.json `standard`); earlier 1.x versions warn
+standard = "1.5"             # the current version (rules.json `standard`); earlier 1.x versions warn
 title = "ab12"               # ^[a-z][a-z0-9]{1,23}$
 audience = "general"         # general | kids
 modules = ["card-board"]     # genre modules; core is implicit and not listed
