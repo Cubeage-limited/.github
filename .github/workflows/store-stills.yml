@@ -45,7 +45,15 @@ on:
         type: string
         default: ""
       pack-dir:
-        description: Directory holding stills.toml, Cargo.toml and KEEL_PIN.
+        description: Directory holding stills.toml and KEEL_PIN (the repository root).
+        type: string
+        default: "."
+      package:
+        description: Cargo package that holds the binary, for a workspace (cargo -p). Empty for a single-crate repository.
+        type: string
+        default: ""
+      title-dir:
+        description: The title crate's directory (its assets/ folder is read from here). keel shot runs from it.
         type: string
         default: "."
       gpu:
@@ -119,10 +127,12 @@ jobs:
           CARGO_NET_GIT_FETCH_WITH_CLI: "true"
           PACK_DIR: ${{ inputs.pack-dir }}
           BIN: ${{ inputs.bin }}
+          PACKAGE: ${{ inputs.package }}
           FEATURES: ${{ inputs.features }}
         run: |
           set -euo pipefail
           ARGS=(build --locked --manifest-path "$PACK_DIR/Cargo.toml" --bin "$BIN")
+          if [ -n "$PACKAGE" ]; then ARGS+=(-p "$PACKAGE"); fi
           if [ -n "$FEATURES" ]; then ARGS+=(--features "$FEATURES"); fi
           CARGO_TARGET_DIR="${RUNNER_TEMP:-/tmp}/stills-target" cargo "${ARGS[@]}"
 
@@ -131,14 +141,16 @@ jobs:
           PACK_DIR: ${{ inputs.pack-dir }}
           BIN: ${{ inputs.bin }}
           TITLE: ${{ inputs.title }}
+          TITLE_DIR: ${{ inputs.title-dir }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import json, os, pathlib, re, struct, subprocess, sys, tomllib
 
-          pack = pathlib.Path(os.environ["PACK_DIR"])
+          pack = pathlib.Path(os.environ["PACK_DIR"]).resolve()
+          title_dir = pathlib.Path(os.environ["TITLE_DIR"]).resolve()
           exe = pathlib.Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "stills-target/debug" / os.environ["BIN"]
-          out = pathlib.Path("store-stills")
+          out = pathlib.Path("store-stills").resolve()
           out.mkdir(exist_ok=True)
           cfg = tomllib.loads((pack / "stills.toml").read_text())
           sizes = cfg.get("sizes", ["1080x1920", "1920x1080"])
@@ -178,7 +190,7 @@ jobs:
                   if still.get("scene"):
                       cmd += ["--scene", still["scene"]]
                   env = dict(os.environ, KEEL_STILL=name, KEEL_STILL_HUD="off")
-                  proc = subprocess.run(cmd, env=env, capture_output=True, text=True)
+                  proc = subprocess.run(cmd, env=env, cwd=title_dir, capture_output=True, text=True)
                   entry = {"still": name, "size": size, "scene": still.get("scene"), "file": f"{name}@{size}.png"}
                   try:
                       report = json.loads(proc.stdout)
