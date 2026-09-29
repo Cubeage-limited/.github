@@ -60,6 +60,10 @@ on:
         description: Install lavapipe (Mesa Vulkan on the CPU) so 3D scenes draw on a runner without a GPU.
         type: boolean
         default: false
+      shot-timeout-s:
+        description: Seconds keel shot waits for each answer from the title (a 3D scene on lavapipe is slow).
+        type: number
+        default: 240
       runs-on:
         type: string
         default: sylphx-linux-standard
@@ -142,6 +146,7 @@ jobs:
           BIN: ${{ inputs.bin }}
           TITLE: ${{ inputs.title }}
           TITLE_DIR: ${{ inputs.title-dir }}
+          SHOT_TIMEOUT: ${{ inputs.shot-timeout-s }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -184,7 +189,8 @@ jobs:
                       sys.exit(f"size {size} is not a multiple of scale {scale}")
                   work = pathlib.Path(os.environ.get("RUNNER_TEMP", "/tmp")) / f"stills-{name}-{size}"
                   cmd = ["keel", "shot", "--exe", str(exe), "--json", "--frames", str(frames),
-                         "--size", f"{w // scale}x{h // scale}", "--out", str(work)]
+                         "--size", f"{w // scale}x{h // scale}", "--out", str(work),
+                         "--timeout", os.environ["SHOT_TIMEOUT"]]
                   if scale != 1:
                       cmd += ["--scale", str(scale)]
                   if still.get("scene"):
