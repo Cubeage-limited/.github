@@ -77,7 +77,9 @@ permissions:
 jobs:
   stills:
     name: store-stills-${{ inputs.title }}
-    runs-on: ${{ inputs.runs-on }}
+    # The own-runner label is named here as the fallback, so the self-hosted-runners guard can
+    # see it (an input alone is set outside this file); a caller may still pass another own runner.
+    runs-on: ${{ inputs.runs-on || 'sylphx-linux-standard' }}
     timeout-minutes: ${{ inputs.timeout-minutes }}
     steps:
       # TEMPORARY until the package registry (SylphxAI/cloud#9411) replaces git deps:
