@@ -1,0 +1,238 @@
+name: store-stills
+
+# Store stills from the real game: `keel shot` scenes, HUD off, each at every size
+# in the title's `stills.toml`. Nothing is composited or drawn by hand. The frames
+# are the title's own scenes, captured headless by Keel's agent devtools, checked
+# (exact pixel size, not blank) and uploaded as the artifact `store-stills-<title>`
+# with the names `<still>@<WxH>.png` and a `manifest.json`.
+#
+# Call it from a title (pull requests only; a queue group does not spend a capture):
+#
+#   stills:
+#     if: github.event_name == 'pull_request'
+#     uses: Cubeage/.github/.github/workflows/store-stills.yml@<sha>
+#     with: { title: voidbite, bin: voidbite-web, features: shots }
+#     secrets: inherit
+#
+# The title's `stills.toml` (at `pack-dir`) is the one shape every title uses:
+#
+#   sizes = ["1080x1920", "1920x1080"]   # output pixels, portrait and landscape
+#   scale = 1                            # optional: draw at size/scale points, at scale x
+#
+#   [[still]]
+#   name    = "chase"                    # file name and KEEL_STILL value
+#   scene   = "play-2"                   # optional: the harness scene id (`keel shot --scene`)
+#   hud     = false                      # false exports KEEL_STILL_HUD=off
+#   wait_ms = 1500                       # settle time, run as fixed steps (60 per second)
+#
+# HUD off: Keel has no HUD switch, so the title's still scene reads the
+# environment variable KEEL_STILL_HUD=off (and KEEL_STILL=<name> for a title
+# whose only scene is `main`) and leaves its HUD out of that scene.
+
+on:
+  workflow_call:
+    inputs:
+      title:
+        description: Title slug; names the artifact store-stills-<title>.
+        type: string
+        required: true
+      bin:
+        description: Cargo binary that runs the title under the Keel harness.
+        type: string
+        required: true
+      features:
+        description: Cargo features that add the still scenes and the Keel harness (for example shots).
+        type: string
+        default: ""
+      pack-dir:
+        description: Directory holding stills.toml and KEEL_PIN (the repository root).
+        type: string
+        default: "."
+      package:
+        description: Cargo package that holds the binary, for a workspace (cargo -p). Empty for a single-crate repository.
+        type: string
+        default: ""
+      title-dir:
+        description: The title crate's directory (its assets/ folder is read from here). keel shot runs from it.
+        type: string
+        default: "."
+      gpu:
+        description: Install lavapipe (Mesa Vulkan on the CPU) so 3D scenes draw on a runner without a GPU.
+        type: boolean
+        default: false
+      shot-timeout-s:
+        description: Seconds keel shot waits for each answer from the title (a 3D scene on lavapipe is slow).
+        type: number
+        default: 240
+      runs-on:
+        type: string
+        default: sylphx-linux-standard
+      timeout-minutes:
+        type: number
+        default: 60
+
+permissions:
+  contents: read
+
+jobs:
+  stills:
+    name: store-stills-${{ inputs.title }}
+    runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    steps:
+      # TEMPORARY until the package registry (SylphxAI/cloud#9411) replaces git deps:
+      # a one-hour, read-only Cubeage CI Reader App token limited to SylphxAI/keel.
+      - name: Mint read-only SylphxAI/keel token
+        id: keel-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.CUBEAGE_CI_READER_APP_ID }}
+          private-key: ${{ secrets.CUBEAGE_CI_READER_APP_KEY }}
+          owner: SylphxAI
+          repositories: keel
+          permission-contents: read
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Authenticate private GitHub deps (Keel)
+        env:
+          KEEL_TOKEN: ${{ steps.keel-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          test -n "${KEEL_TOKEN:-}"
+          git config --global url."https://x-access-token:${KEEL_TOKEN}@github.com/SylphxAI/".insteadOf "https://github.com/SylphxAI/"
+          mkdir -p .cargo
+          printf '[net]\ngit-fetch-with-cli = true\n' > .cargo/config.toml
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Vulkan on the CPU (lavapipe)
+        if: inputs.gpu
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mesa-vulkan-drivers
+
+      - name: Build the keel CLI at KEEL_PIN
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+          PACK_DIR: ${{ inputs.pack-dir }}
+        run: |
+          set -euo pipefail
+          PIN="$(tr -d '[:space:]' < "$PACK_DIR/KEEL_PIN")"
+          test -n "$PIN"
+          KEEL_SRC="${RUNNER_TEMP:-/tmp}/keel-${PIN}"
+          KEEL_ROOT="${RUNNER_TEMP:-/tmp}/keel-cli"
+          git clone --filter=blob:none --no-checkout https://github.com/SylphxAI/keel "$KEEL_SRC"
+          git -C "$KEEL_SRC" checkout --detach "$PIN"
+          test "$(git -C "$KEEL_SRC" rev-parse HEAD)" = "$PIN"
+          cargo install --path "$KEEL_SRC/crates/keel-cli" --locked --root "$KEEL_ROOT"
+          echo "$KEEL_ROOT/bin" >> "$GITHUB_PATH"
+
+      - name: Build the title with its still scenes
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+          PACK_DIR: ${{ inputs.pack-dir }}
+          BIN: ${{ inputs.bin }}
+          PACKAGE: ${{ inputs.package }}
+          FEATURES: ${{ inputs.features }}
+        run: |
+          set -euo pipefail
+          ARGS=(build --locked --manifest-path "$PACK_DIR/Cargo.toml" --bin "$BIN")
+          if [ -n "$PACKAGE" ]; then ARGS+=(-p "$PACKAGE"); fi
+          if [ -n "$FEATURES" ]; then ARGS+=(--features "$FEATURES"); fi
+          CARGO_TARGET_DIR="${RUNNER_TEMP:-/tmp}/stills-target" cargo "${ARGS[@]}"
+
+      - name: Capture every still at every size
+        env:
+          PACK_DIR: ${{ inputs.pack-dir }}
+          BIN: ${{ inputs.bin }}
+          TITLE: ${{ inputs.title }}
+          TITLE_DIR: ${{ inputs.title-dir }}
+          SHOT_TIMEOUT: ${{ inputs.shot-timeout-s }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib, re, struct, subprocess, sys, tomllib
+
+          pack = pathlib.Path(os.environ["PACK_DIR"]).resolve()
+          title_dir = pathlib.Path(os.environ["TITLE_DIR"]).resolve()
+          exe = pathlib.Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "stills-target/debug" / os.environ["BIN"]
+          out = pathlib.Path("store-stills").resolve()
+          out.mkdir(exist_ok=True)
+          cfg = tomllib.loads((pack / "stills.toml").read_text())
+          sizes = cfg.get("sizes", ["1080x1920", "1920x1080"])
+          scale = int(cfg.get("scale", 1))
+          stills = cfg.get("still", [])
+          if not stills:
+              sys.exit("stills.toml has no [[still]]")
+          if not 3 <= len(stills) <= 5:
+              sys.exit(f"a title carries 3 to 5 stills, stills.toml has {len(stills)}")
+          for need in ("1080x1920", "1920x1080"):
+              if need not in sizes:
+                  sys.exit(f"stills.toml sizes must include {need}")
+
+          def png_size(path):
+              head = path.read_bytes()[:24]
+              if head[:8] != b"\x89PNG\r\n\x1a\n":
+                  raise ValueError("not a PNG")
+              return struct.unpack(">II", head[16:24])
+
+          manifest, failures = [], []
+          for still in stills:
+              name = still["name"]
+              if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", name):
+                  sys.exit(f"still name {name!r} must be lowercase letters, digits and dashes")
+              if still.get("hud", False):
+                  sys.exit(f"still {name}: store stills are HUD off; set hud = false")
+              frames = max(1, round(int(still.get("wait_ms", 500)) * 60 / 1000))
+              for size in sizes:
+                  w, h = (int(v) for v in size.split("x"))
+                  if w % scale or h % scale:
+                      sys.exit(f"size {size} is not a multiple of scale {scale}")
+                  work = pathlib.Path(os.environ.get("RUNNER_TEMP", "/tmp")) / f"stills-{name}-{size}"
+                  cmd = ["keel", "shot", "--exe", str(exe), "--json", "--frames", str(frames),
+                         "--size", f"{w // scale}x{h // scale}", "--out", str(work),
+                         "--timeout", os.environ["SHOT_TIMEOUT"]]
+                  if scale != 1:
+                      cmd += ["--scale", str(scale)]
+                  if still.get("scene"):
+                      cmd += ["--scene", still["scene"]]
+                  env = dict(os.environ, KEEL_STILL=name, KEEL_STILL_HUD="off")
+                  proc = subprocess.run(cmd, env=env, cwd=title_dir, capture_output=True, text=True)
+                  entry = {"still": name, "size": size, "scene": still.get("scene"), "file": f"{name}@{size}.png"}
+                  try:
+                      report = json.loads(proc.stdout)
+                      shot = report["shots"][0]
+                      pngs = list(work.glob("*.png"))
+                      if proc.returncode != 0 or not shot.get("ok"):
+                          raise ValueError(f"keel shot failed: {shot.get('failure') or proc.stderr[-400:]}")
+                      if len(pngs) != 1:
+                          raise ValueError(f"expected one PNG, found {len(pngs)}")
+                      if shot["pixels"].get("blank"):
+                          raise ValueError("blank frame")
+                      if shot["pixels"].get("colors", 0) < 16:
+                          raise ValueError(f"only {shot['pixels'].get('colors')} colors: not a game scene")
+                      got = png_size(pngs[0])
+                      if got != (w, h):
+                          raise ValueError(f"image is {got[0]}x{got[1]}, wanted {size}")
+                      pngs[0].rename(out / entry["file"])
+                      entry.update(ok=True, colors=shot["pixels"].get("colors"), coverage=shot["pixels"].get("coverage"),
+                                   renderer=shot.get("renderer"))
+                  except Exception as err:
+                      entry.update(ok=False, failure=str(err))
+                      failures.append(f"{entry['file']}: {err}")
+                  manifest.append(entry)
+
+          (out / "manifest.json").write_text(json.dumps(
+              {"title": os.environ["TITLE"], "sizes": sizes, "scale": scale, "hud": "off",
+               "commit": os.environ.get("GITHUB_SHA"), "stills": manifest}, indent=2))
+          print(json.dumps(manifest, indent=2))
+          if failures:
+              sys.exit("store stills failed:\n" + "\n".join(failures))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: store-stills-${{ inputs.title }}
+          path: store-stills
+          if-no-files-found: error
+          retention-days: 30
