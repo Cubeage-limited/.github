@@ -1,0 +1,29 @@
+name: cubeage-sdk-pin
+description: >
+  Release gate: fail when the repository pins a refused cubeage-native-sdk
+  version (default 4.2.18 and 4.2.19, the offline-first-launch V1 guest-stranding
+  bug) or a version below an optional minimum. Scans real pin sites only
+  (Unity manifest and lock, Solar2D pin file and build.settings, SPM, Gradle,
+  workflow refs, submodules); prose in Markdown never fails.
+inputs:
+  deny:
+    description: Comma-separated cubeage-native-sdk versions that always fail.
+    required: false
+    default: "4.2.18,4.2.19"
+  minimum:
+    description: >
+      Lowest allowed cubeage-native-sdk version (for example "4.2.20"). Empty
+      disables the minimum check.
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      with:
+        python-version: "3.12"
+    - shell: bash
+      env:
+        DENY: ${{ inputs.deny }}
+        MINIMUM: ${{ inputs.minimum }}
+      run: python3 "$GITHUB_ACTION_PATH/check_sdk_pin.py" "$GITHUB_WORKSPACE" --deny "$DENY" --minimum "$MINIMUM"
