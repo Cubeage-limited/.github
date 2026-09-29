@@ -41,6 +41,7 @@ deployments, or production support.
 
 - Reusable workflow: `.github/workflows/ios-sign-and-build.yml`.
 - Reusable workflow: `.github/workflows/firebase-app-distribution.yml`.
+- Reusable workflow: `.github/workflows/store-stills.yml` (real in-game store stills from `keel shot`, HUD off, 1080x1920 and 1920x1080; reads the title's `stills.toml`; artifact `store-stills-<title>`).
 - Shared script: `scripts/pages-publish.sh`, the Cloudflare Pages upload that
   Cubeage title repositories fetch at a pinned commit.
 - Template metadata: `workflow-templates/ios-app-store.properties.json` (the
