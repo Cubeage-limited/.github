@@ -8,7 +8,10 @@
 # branch defaults to main. Flags after "--" go to `wrangler pages deploy`
 # unchanged (for example --commit-hash, --commit-message, --commit-dirty=false);
 # without a --commit-dirty flag the upload is marked --commit-dirty=true.
-# wrangler@4 runs through npx, or through bunx on runners without Node.
+# wrangler runs at the exact version WRANGLER_VERSION through npx, or through
+# bunx on runners without Node. Bump it on purpose: a floating major resolved
+# 4.146.0 minutes after its publish and 404'd every Pages job until the tarball
+# propagated (2026-10-01).
 #
 # Credential: CLOUDFLARE_API_TOKEN, an account-owned token with Pages Edit.
 #   CI:   the repository's CLOUDFLARE_API_TOKEN secret.
@@ -42,10 +45,11 @@ dirty=(--commit-dirty=true)
 for flag in "${extra[@]}"; do
   case "$flag" in --commit-dirty*) dirty=() ;; esac
 done
+WRANGLER_VERSION=4.145.0
 if command -v npx >/dev/null 2>&1; then
-  wrangler=(npx --yes wrangler@4)
+  wrangler=(npx --yes "wrangler@$WRANGLER_VERSION")
 elif command -v bunx >/dev/null 2>&1; then
-  wrangler=(bunx wrangler@4)
+  wrangler=(bunx "wrangler@$WRANGLER_VERSION")
 else
   echo "pages-publish: needs npx (Node) or bunx (Bun) to run wrangler" >&2
   exit 69
