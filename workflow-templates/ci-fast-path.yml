@@ -5,7 +5,6 @@
 # with the commit you adopt (callers pin by commit), then fill in the jobs.
 # A game repository keeps its device and store builds out of the pull-request
 # path: put them on merge_group, schedule or workflow_dispatch.
-# commit you adopt (callers pin by commit), then fill in the jobs.
 name: CI
 
 on:
