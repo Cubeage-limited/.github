@@ -13,6 +13,11 @@ Sylphx Runners.
 
 - `.github/workflows/firebase-app-distribution.yml`: reusable workflow that
   uploads an Android APK/AAB to Firebase App Distribution.
+- `workflow-templates/ci-fast-path.yml`: the starter for a repository's CI -
+  docs-only pull requests skip heavy jobs, superseded runs cancel, heavy jobs
+  wait for the cheap gate, `ci-ok` is the required check. It calls the
+  reusable `changes.yml`, `cache-toolchain` and `needs-pass` in
+  `SylphxAI/.github`; the recipe is its `docs/ci-template.md`.
 - `.github/workflows/content-checks.yml`: this repository's own content checks.
   Every Cubeage repository carries its own copy calling the shared
   `SylphxAI/.github` actions: `plain-language` (advisory, never blocks) and
